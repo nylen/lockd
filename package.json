@@ -1,0 +1,30 @@
+{
+    "name"        : "lockd",
+    "author"      : "James Nylen <jnylen@gmail.com>",
+    "description" : "A network lock service and client library.",
+    "version"     : "0.0.0",
+    "repository"  : {
+        "type" : "git",
+        "url"  : "https://github.com/nylen/lockd"
+    },
+    "bugs" : {
+        "url" : "https://github.com/nylen/lockd/issues"
+    },
+    "license"  : "MIT",
+    "keywords" : [
+        "network",
+        "exclusive",
+        "shared",
+        "lock",
+        "locking",
+        "manager",
+        "service"
+    ],
+    "scripts" : {
+        "test" : "node node_modules/.bin/mocha"
+    },
+    "main" : "index.js",
+    "bin"  : {
+        "lockd" : "bin/lockd.js"
+    }
+}
