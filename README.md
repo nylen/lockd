@@ -5,62 +5,6 @@ A network lock service and client library.  Port of
 
 **WORK IN PROGRESS** - not ready for use yet.
 
-## Installation
-
-```
-sudo npm install -g lockd
-lockd --help
-```
-
-## Other Client Implementations
-
-- PHP: http://code.svn.wordpress.org/lockd/lockd-client.php
-- Python: https://gist.github.com/mdawaffe/e53c86e5163b48d5fe3a
-- Go: https://github.com/apokalyptik/glockc
-
-## Connection Methods
-
-When running the server from the command line, it will listen on TCP/IP port
-9999 by default.  If any other connection methods are specified then this
-default will not be used.
-
-### TCP/IP
-
-If TCP/IP is enabled then you may simply telnet to the port number that `lockd`
-is listening on (9999 by default.)  You can open a TCPIP socket in any
-programming language this way (`fsockopen` in PHP for example.)  There is no
-handshake, banner, or negotiation that takes place.  Clients can issue commands
-immediately upon connecting.
-
-Client Implementations:
-
-- PHP: http://code.svn.wordpress.org/lockd/lockd-client.php
-
-### Websockets
-
-If websockets are enabled then you may simply connect to the server as you
-normally would on `ws://host:port/`.  The API works the same way for websockets
-as for TCP/IP sockets.
-
-### Unix Sockets
-
-If a path to a local unix socket has been specified (via the `--unix`
-parameter) then you may connect to it as you would any `AF_UNIX` socket in
-your programming language (example below.)  You may then read/write commands as
-you would a TCP/IP socket connection.  This obviously only works when
-connecting to `lockd` from the same machine since a shared filesystem which
-supports unix sockets is required.
-
-Example connecting to `lockd` via a unix socket in Python:
-
-```python
-import socket
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-s.connect("/var/run/lockd/socket")
-s.sendall("g foo\n")
-print s.recv(4096)
-```
-
 ## Lock Types
 
 ### Exclusive Locks
@@ -96,255 +40,134 @@ to be "orphaned" and are automatically released.  This behavior works just like
 the exclusive lock orphaning feature.  Counts on shared locks are appropriately
 updated when locks are orphaned.
 
-## Exclusive Locks API
+## Installation
 
-Generally speaking most commands for exclusive locks return a response in the
-format `%d %s`.  The integer portion of the response is meant for programmatic
-interpretation, where `1` represents success or acquisition of the lock, and
-`0` represents failure or non-acquisition of the lock.
+### Client Installation
 
-### Get a lock: `g LOCKNAME\n`
+To connect to a running `lockd` server:
 
-In the following example `foo` is available, but `bar` is already locked by
-another client.
-
-```diff
-> g foo
-< 1 Lock Get Success: foo
-> g bar
-< 0 Lock Get Failure: bar
+```
+npm install lockd
 ```
 
-### Release a lock: `r LOCKNAME\n`
+```js
+var lockd = require('lockd');
 
-```diff
-> g foo
-< 1 Lock Get Success: foo
-> r foo
-< 1 Lock Release Success: foo
-> r bar
-< 0 Lock Release Failure: bar
+var client = lockd.connect({
+    // Choose one of the following connection methods:
+    tcp       : 'host:port',
+    unix      : '/path/to/unix.socket',
+    websocket : 'ws://host:port',
+    // Extra options, if needed:
+    timeout     : /* connection timeout in ms */
+    readTimeout : /* socket read timeout in ms */
+});
 ```
 
-### Inspect a lock: `i LOCKNAME\n`
+### Server Installation
 
-```diff
-> i foo
-< 1 Lock Is Locked: foo
-> i bar
-< 0 Lock Not Locked: bar
+To run a `lockd` server from the command line:
+
+```
+sudo npm install -g lockd
+lockd --help
 ```
 
-### Dump locks and their holders: `d\n` or `d LOCKNAME\n`
+When running the server from the command line, it will listen on TCP/IP port
+9999 by default.  If any other connection methods are specified then this
+default will not be used.
 
-Only available if `lockd` was started with the `--allow-dump` option.
 
-This command is mainly useful for debugging.
+To start a `lockd` server as part of a Node.js program:
 
-```diff
-> d
-< baz: 174.62.83.171:59060
-< foo: 174.62.83.171:59056
-< bar: 174.62.83.171:59060
-< boo: 174.62.83.171:59060
-> d foo
-< foo: 174.62.83.171:59056
+```
+npm install lockd
 ```
 
-### Dump the lock data structure: `dump\n`
+```js
+var lockd = require('lockd');
 
-Only available if `lockd` was started with the `--allow-dump` option.
-
-This command is mainly useful for debugging.
-
-```diff
-> dump
-< map[boo:174.62.83.171:59060 baz:174.62.83.171:59060 foo:174.62.83.171:59056 bar:174.62.83.171:59060]
+var server = lockd.listen({
+    // Choose one or more of the following connection methods:
+    tcp       : 'host:port',
+    unix      : '/path/to/unix.socket',
+    websocket : 'ws://host:port'
+});
 ```
 
-## Shared Locks API
+**TODO**: support listening on a websocket path given an existing server
+instance, see
+https://github.com/einaros/ws/blob/v0.4.30/test/WebSocketServer.test.js#L121
 
-Generally speaking most commands for shared locks return a response in the
-format `%d %s`.  The integer portion of the response is meant for programmatic
-interpretation, where `%d >= 1` represents success or acquisition of the lock,
-and `0` represents failure or non-acquisition of the lock.
+## Client Documentation
 
-### Get a shared lock: `sg LOCKNAME\n`
+The following methods are available on `lockd` client objects created with
+`lockd.connect` as described above.
 
-```diff
-> client1> sg foo
-< client1< 1 Shared Lock Get Success: foo
-> client2> sg foo
-< client2< 2 Shared Lock Get Success: foo
-> client2> sg bar
-< client2< 1 Shared Lock Get Success: bar
-```
+Many server responses contain a leading number that is `0` on failure or `>= 1`
+on success, and then a text description (see the
+[protocol documentation](docs/protocol.md) for more information).  When a
+method has a callback with parameters `count`/`ok` and `msg`, they will contain
+the number and the message from the server response (unless the server response
+indicates an error condition like failure to acquire an exclusive lock).
 
-### Release a shared lock: `sr LOCKNAME\n`
+### get(lockName, cb)
 
-```diff
-> client1> sg foo
-< client1< 1 Shared Lock Get Success: foo
-> client2> sg foo
-< client2< 2 Shared Lock Get Success: foo
-> client3> si foo
-< client3< 2 Shared Lock Is Locked: foo
-> client1> sr foo
-< client1< 1 Shared Lock Release Success: foo
-> client3> si foo
-< client3< 1 Shared Lock Is Locked: foo
-> client2> sr foo
-< client2< 1 Shared Lock Release Success: foo
-> client3> si foo
-< client3< 0 Shared Lock Not Locked: foo
-```
+Attempts to acquire the exclusive lock `lockName`.  The callback `cb` is called
+with parameters (`err`, `count`, `msg`).
 
-### Inspect a shared lock: `si LOCKNAME\n`
+If the lock is acquired, `err` will be `null` and `count` will be `1`.  If the
+lock is not acquired (because it is held by another client), `err` will be an
+`Error` object and the other arguments will be missing.
 
-```diff
-> client1> si foo
-< client1< 0 Shared Lock Not Locked: foo
-> client1> sg foo
-< client1< 1 Shared Lock Get Success: foo
-> client2> si foo
-< client2< 1 Shared Lock Is Locked: foo
-> client2> sg foo
-< client2< 2 Shared Lock Get Success: foo
-> client1> si foo
-< client1< 2 Shared Lock Get Success: foo
-```
+### release(lockName, cb)
 
-### Dump locks and their holders: `sd\n` or `sd LOCKNAME\n`
+Attempts to release the exclusive lock `lockName`.  The callback `cb` is called
+with parameters (`err`, `ok`, `msg`).
 
-Only available if `lockd` was started with the `--allow-dump` option.
+If the lock is released, `err` will be `null` and `ok` will be `1`.  If the
+lock is not released (because it is not held by this client), `err` will be an
+`Error` object and the other arguments will be missing.
 
-```diff
-> sd
-< blah: 174.62.83.171:59615
-< bar: 174.62.83.171:59615
-< foo: 174.62.83.171:59615
-< foo: 174.62.83.171:59614
-< baz: 174.62.83.171:59615
-> sd foo
-< foo: 174.62.83.171:59615
-< foo: 174.62.83.171:59614
-```
+### inspect(lockName, cb)
 
-### Dump the lock data structure: `dump shared\n`
+Returns whether the exclusive lock `lockName` is currently held by a client.
+The callback `cb` is called with parameters (`err`, `count`, `msg`).
 
-Only available if `lockd` was started with the `--allow-dump` option.
+`count` will be `1` if the lock is held by a client and `0` if it is free.
 
-```diff
-> dump shared
-< map[blah:[174.62.83.171:59615] bar:[174.62.83.171:59615] foo:[174.62.83.171:59615 174.62.83.171:59614] baz:[174.62.83.171:59615]]
-```
+### getShared(lockName, cb)
 
-## Registry API
+Acquires the shared lock `lockName`.  The callback `cb` is called with
+parameters (`err`, `count`, `msg`).
 
-### Get connection name: `me\n`
+The lock will be acquired and `count` will be the number of clients that are
+holding the requested lock, including the current client.
 
-This command always returns two values:
+### releaseShared(lockName, cb)
 
-1. The default connection name (used in the output of the `dump` and
-   `dump shared` commands)
-2. The registered name of the connection (used in the output of the `d` and
-   `sd` commands commands and defaults to the first parameter if the `iam`
-   command was not used to register a name for the current session)
+Attempts to release the shared lock `lockName`.  The callback `cb` is called
+with parameters (`err`, `ok`, `msg`).
 
-```diff
-> me
-< 1 127.0.0.1:57871 127.0.0.1:57871
-> iam foo
-< 1 ok
-> me
-< 1 127.0.0.1:57871 foo
-```
+If the lock is released, `err` will be `null` and `ok` will be `1`.  If the
+lock is not released (because it is not held by this client), `err` will be an
+`Error` object and the other arguments will be missing.
 
-### Set connection name: `iam NAME\n`
+### inspectShared(lockName, cb)
 
-Only available if `lockd` was started with the `--enable-registry` option.
+Returns the number of clients currently holding the shared lock `lockName`.
+The callback `cb` is called with parameters (`err`, `count`, `msg`).
 
-```diff
-> g lock1
-< 1 Got Lock
-> d lock1
-< lock1: 127.0.0.1:60882
-> iam foo
-< 1 ok
-> d lock1
-< lock1: foo
-> iam
-< 1 ok
-> d lock1
-< lock1: 127.0.0.1:60882
-```
+`count` will be `>= 1` if the lock is held by one or more clients and `0` if it
+is free.
 
-### List client names: `who\n` or `who NAME\n`
+## Other Client Implementations
 
-Only available if `lockd` was started with both the `--allow-dump` and
-`--enable-registry` options.
+- PHP: http://code.svn.wordpress.org/lockd/lockd-client.php
+- Python: https://gist.github.com/mdawaffe/e53c86e5163b48d5fe3a
+- Go: https://github.com/apokalyptik/glockc
 
-```diff
-> client1> who
-< client1< 
-> client1> iam me
-< client1< 1 ok
-> client2> iam someone_else
-< client2< 1 ok
-> client1> who
-< client1< 127.0.0.1:60882: me
-< client1< 127.0.0.1:60918: someone_else
-> client1> who someone_else
-< client1< 127.0.0.1:60918: someone_else
-```
+## Protocol Documentation
 
-## Stats API
-
-### Get stats information: `q\n`
-
-```diff
-> q
-< command_d: 4
-< command_dump: 1
-< command_g: 9
-< command_i: 7
-< command_q: 1
-< command_r: 3
-< command_sd: 1
-< command_sg: 1
-< command_si: 2
-< command_sr: 1
-< connections: 2
-< invalid_commands: 23
-< locks: 4
-< orphans: 2
-< shared_locks: 1
-< shared_orphans: 1
-```
-
-### Stats response: `command_NAME`
-
-The number of times the particular command `NAME` has been issued since `lockd`
-has been running.  Zeroed on server startup.
-
-### Stats response: `locks`, `shared_locks`
-
-The current number of locked strings.  For shared locks this is the number of
-locked strings and NOT the number of clients with active locks.
-
-### Stats response: `orphans`, `shared_orphans`
-
-Incremented by one every time a lock is orphaned.  If a client disconnects with
-3 shared and 1 exclusive locks then the numbers are incremented by 3 and 1
-respecively.  Zeroed on startup.
-
-### Stats response: `connections`
-
-The number of live connections to `lockd`.  This number should always be at
-least 1 since you cannot get these stats except by connecting.
-
-### Stats response: `invalid_commands`
-
-The number of times unrecognized commands have been sent to `lockd`.  Example:
-sending `stats\n` would increment this counter by one since `stats` is not a
-valid command.  Zeroed on startup.
+`lockd` uses a simple line-based protocol available over several different
+transports.  See [docs/protocol.md](docs/protocol.md) for more information.
