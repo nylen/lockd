@@ -172,46 +172,46 @@ and `0` represents failure or non-acquisition of the lock.
 ### Get a shared lock: `sg LOCKNAME\n`
 
 ```diff
-client1> sg foo
-client1< 1 Shared Lock Get Success: foo
-client2> sg foo
-client2< 2 Shared Lock Get Success: foo
-client2> sg bar
-client2< 1 Shared Lock Get Success: bar
+> client1> sg foo
+< client1< 1 Shared Lock Get Success: foo
+> client2> sg foo
+< client2< 2 Shared Lock Get Success: foo
+> client2> sg bar
+< client2< 1 Shared Lock Get Success: bar
 ```
 
 ### Release a shared lock: `sr LOCKNAME\n`
 
 ```diff
-client1> sg foo
-client1< 1 Shared Lock Get Success: foo
-client2> sg foo
-client2< 2 Shared Lock Get Success: foo
-client3> si foo
-client3< 2 Shared Lock Is Locked: foo
-client1> sr foo
-client1< 1 Shared Lock Release Success: foo
-client3> si foo
-client3< 1 Shared Lock Is Locked: foo
-client2> sr foo
-client2< 1 Shared Lock Release Success: foo
-client3> si foo
-client3< 0 Shared Lock Not Locked: foo
+> client1> sg foo
+< client1< 1 Shared Lock Get Success: foo
+> client2> sg foo
+< client2< 2 Shared Lock Get Success: foo
+> client3> si foo
+< client3< 2 Shared Lock Is Locked: foo
+> client1> sr foo
+< client1< 1 Shared Lock Release Success: foo
+> client3> si foo
+< client3< 1 Shared Lock Is Locked: foo
+> client2> sr foo
+< client2< 1 Shared Lock Release Success: foo
+> client3> si foo
+< client3< 0 Shared Lock Not Locked: foo
 ```
 
 ### Inspect a shared lock: `si LOCKNAME\n`
 
 ```diff
-client1> si foo
-client1< 0 Shared Lock Not Locked: foo
-client1> sg foo
-client1< 1 Shared Lock Get Success: foo
-client2> si foo
-client2< 1 Shared Lock Is Locked: foo
-client2> sg foo
-client2< 2 Shared Lock Get Success: foo
-client1> si foo
-client1< 2 Shared Lock Get Success: foo
+> client1> si foo
+< client1< 0 Shared Lock Not Locked: foo
+> client1> sg foo
+< client1< 1 Shared Lock Get Success: foo
+> client2> si foo
+< client2< 1 Shared Lock Is Locked: foo
+> client2> sg foo
+< client2< 2 Shared Lock Get Success: foo
+> client1> si foo
+< client1< 2 Shared Lock Get Success: foo
 ```
 
 ### Dump locks and their holders: `sd\n` or `sd LOCKNAME\n`
@@ -285,17 +285,17 @@ Only available if `lockd` was started with both the `--allow-dump` and
 `--enable-registry` options.
 
 ```diff
-client1> who
-client1< 
-client1> iam me
-client1< 1 ok
-client2> iam someone_else
-client2< 1 ok
-client1> who
-client1< 127.0.0.1:60882: me
-client1< 127.0.0.1:60918: someone_else
-client1> who someone_else
-client1< 127.0.0.1:60918: someone_else
+> client1> who
+< client1< 
+> client1> iam me
+< client1< 1 ok
+> client2> iam someone_else
+< client2< 1 ok
+> client1> who
+< client1< 127.0.0.1:60882: me
+< client1< 127.0.0.1:60918: someone_else
+> client1> who someone_else
+< client1< 127.0.0.1:60918: someone_else
 ```
 
 ## Stats API
