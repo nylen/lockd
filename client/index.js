@@ -121,13 +121,14 @@ LockdClient.prototype.disconnect = function(cb) {
 LockdClient.prototype._processResponseLine = function(cb, err, line, failureIsError) {
     if (err) {
         cb(err);
+        return;
+    }
+
+    var arr = utils.splitAtFirstSpace(line, true);
+    if (arr[0] || (typeof failureIsError != 'undefined' && !failureIsError)) {
+        cb(null, arr[0], arr[1]);
     } else {
-        var arr = utils.splitAtFirstSpace(line, true);
-        if (arr[0] || (typeof failureIsError != 'undefined' && !failureIsError)) {
-            cb(null, arr[0], arr[1]);
-        } else {
-            cb(new Error(arr[1]));
-        }
+        cb(new Error(arr[1]));
     }
 };
 
