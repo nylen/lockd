@@ -141,7 +141,7 @@ describe('LockdClient', function() {
             done);
     });
 
-    it('serializes operations on a single client', function(done) {
+    it('serializes concurrent requests from a single client', function(done) {
         testSequence(
             [client1, 'inspect', 'asdf1', null, 0, 'Lock Not Locked: asdf1'],
             [client1, 'inspect', 'asdf2', null, 0, 'Lock Not Locked: asdf2'],
