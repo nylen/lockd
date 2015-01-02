@@ -23,7 +23,7 @@ function LockdClient(options) {
 
     if (options._isLockdServer === true) {
         // This is an instance of LockdServer running in the same process.
-        self.server = new transports.memory(options);
+        self.transport = new transports.memory(options);
 
     } else if (options.tcp) {
         // Connect to a lockd server listening on the TCP socket [host:]port
@@ -35,7 +35,7 @@ function LockdClient(options) {
         if (options.readTimeout) {
             connectTo.readTimeout = options.readTimeout;
         }
-        self.server = new transports.socket(connectTo);
+        self.transport = new transports.socket(connectTo);
 
     } else if (options.unix) {
         // Connect to a lockd server listening on the Unix socket filename
@@ -47,12 +47,12 @@ function LockdClient(options) {
         if (options.readTimeout) {
             connectTo.readTimeout = options.readTimeout;
         }
-        self.server = new transports.socket(connectTo);
+        self.transport = new transports.socket(connectTo);
 
     } else if (options.websocket) {
         // Connect to a lockd server listening on the websocket
         // ws://host[:port][/path] specified by options.websocket
-        self.server = new transports.websocket(options);
+        self.transport = new transports.websocket(options);
 
     } else {
         throw new Error('No valid lockd connection method given.');
@@ -60,7 +60,7 @@ function LockdClient(options) {
     }
 
     ['connect', 'error', 'close'].forEach(function(e) {
-        self.server.on(e, function() {
+        self.transport.on(e, function() {
             self.emit.apply(self, [e].concat(arguments));
         });
     });
@@ -74,7 +74,7 @@ function addSimpleMethod(name, msg, failureIsError) {
     LockdClient.prototype[name] = function(lockName, cb) {
         var self = this;
 
-        self.server.request(util.format(msg, lockName), 1, function(err, lines) {
+        self.transport.request(util.format(msg, lockName), 1, function(err, lines) {
             self._processResponseLine(cb, err, lines && lines[0], failureIsError);
         });
     };
@@ -111,7 +111,7 @@ LockdClient.prototype.dumpShared = function(lockName) {
 LockdClient.prototype.disconnect = function(cb) {
     var self = this;
 
-    self.server.disconnect(function(err) {
+    self.transport.disconnect(function(err) {
         cb(err);
     });
 };
