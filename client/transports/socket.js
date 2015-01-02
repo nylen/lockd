@@ -4,9 +4,9 @@ var async  = require('async'),
     split  = require('split'),
     util   = require('util');
 
-function SocketBackend(options) {
-    if (!(this instanceof SocketBackend)) {
-        return new SocketBackend(options);
+function SocketTransport(options) {
+    if (!(this instanceof SocketTransport)) {
+        return new SocketTransport(options);
     }
 
     var self = this;
@@ -52,9 +52,9 @@ function SocketBackend(options) {
     self.readTimeout = options.readTimeout || 100;
 }
 
-util.inherits(SocketBackend, events.EventEmitter);
+util.inherits(SocketTransport, events.EventEmitter);
 
-SocketBackend.prototype.request = function(msg, linesWanted, cb) {
+SocketTransport.prototype.request = function(msg, linesWanted, cb) {
     var self = this;
 
     if (typeof cb == 'undefined') {
@@ -77,7 +77,7 @@ SocketBackend.prototype.request = function(msg, linesWanted, cb) {
     });
 };
 
-SocketBackend.prototype.read = function(linesWanted, cb) {
+SocketTransport.prototype.read = function(linesWanted, cb) {
     var self = this;
 
     var linesReceived = [];
@@ -126,7 +126,7 @@ SocketBackend.prototype.read = function(linesWanted, cb) {
     }
 };
 
-SocketBackend.prototype.disconnect = function(cb) {
+SocketTransport.prototype.disconnect = function(cb) {
     var self = this;
 
     self.disconnecting = true;
@@ -138,4 +138,4 @@ SocketBackend.prototype.disconnect = function(cb) {
     });
 };
 
-module.exports = SocketBackend;
+module.exports = SocketTransport;

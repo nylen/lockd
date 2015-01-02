@@ -5,12 +5,12 @@ var events = require('events'),
     util   = require('util'),
     utils  = require('../lib/utils');
 
-var backends = {};
+var transports = {};
 
-fs.readdirSync(path.join(__dirname, 'backends')).forEach(function(fn) {
+fs.readdirSync(path.join(__dirname, 'transports')).forEach(function(fn) {
     var name = fn.replace(/\.js$/, '');
     if (fn != name) {
-        backends[name] = require('./backends/' + name);
+        transports[name] = require('./transports/' + name);
     }
 });
 
@@ -23,7 +23,7 @@ function LockdClient(options) {
 
     if (options._isLockdServer === true) {
         // This is an instance of LockdServer running in the same process.
-        self.server = new backends.memory(options);
+        self.server = new transports.memory(options);
 
     } else if (options.tcp) {
         // Connect to a lockd server listening on the TCP socket [host:]port
@@ -35,7 +35,7 @@ function LockdClient(options) {
         if (options.readTimeout) {
             connectTo.readTimeout = options.readTimeout;
         }
-        self.server = new backends.socket(connectTo);
+        self.server = new transports.socket(connectTo);
 
     } else if (options.unix) {
         // Connect to a lockd server listening on the Unix socket filename
@@ -47,12 +47,12 @@ function LockdClient(options) {
         if (options.readTimeout) {
             connectTo.readTimeout = options.readTimeout;
         }
-        self.server = new backends.socket(connectTo);
+        self.server = new transports.socket(connectTo);
 
     } else if (options.websocket) {
         // Connect to a lockd server listening on the websocket
         // ws://host[:port][/path] specified by options.websocket
-        self.server = new backends.websocket(options);
+        self.server = new transports.websocket(options);
 
     } else {
         throw new Error('No valid lockd connection method given.');
@@ -116,7 +116,7 @@ LockdClient.prototype.disconnect = function(cb) {
     });
 };
 
-// Handle a simple response from the backend:  either an error or a single
+// Handle a simple response from the transport:  either an error or a single
 // line.
 LockdClient.prototype._processResponseLine = function(cb, err, line, failureIsError) {
     if (err) {
