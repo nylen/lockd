@@ -59,6 +59,8 @@ function LockdClient(options) {
 
     }
 
+    // Handle events from the transport
+    // TODO what happens if e.g. a socket connection is lost?
     ['connect', 'error', 'close'].forEach(function(e) {
         self.transport.on(e, function() {
             self.emit.apply(self, [e].concat(arguments));

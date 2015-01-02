@@ -104,12 +104,27 @@ https://github.com/einaros/ws/blob/v0.4.30/test/WebSocketServer.test.js#L121
 The following methods are available on `lockd` client objects created with
 `lockd.connect` as described above.
 
+All client operations are serialized:  a client will perform requests to the
+server in series so that at most one operation is in progress at once.  Clients
+will also queue operations until connected to the server, so requests can be
+made immediately upon creating a client.
+
 Many server responses contain a leading number that is `0` on failure or `>= 1`
 on success, and then a text description (see the
 [protocol documentation](docs/protocol.md) for more information).  When a
 method has a callback with parameters `count`/`ok` and `msg`, they will contain
 the number and the message from the server response (unless the server response
 indicates an error condition like failure to acquire an exclusive lock).
+
+### Events
+
+Clients will emit the following events:
+- `connect` - when connected to the server, if applicable.  You shouldn't have
+  to worry about this event since client operations are serialized.
+- `close` - when disconnected from the server, if applicable.  You shouldn't
+  have to worry about this event - use the [`disconnect`](#disconnectcb) method
+  instead.
+- `error` - on failure to connect to the server.
 
 ### get(lockName, cb)
 
@@ -160,6 +175,11 @@ The callback `cb` is called with parameters (`err`, `count`, `msg`).
 
 `count` will be `>= 1` if the lock is held by one or more clients and `0` if it
 is free.
+
+### disconnect(cb)
+
+Closes the connection to the `lockd` server (if any).  This will also cause any
+locks held by the client to be released.
 
 ## Other Client Implementations
 
