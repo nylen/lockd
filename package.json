@@ -10,7 +10,7 @@
     "bugs" : {
         "url" : "https://github.com/nylen/lockd/issues"
     },
-    "license"  : "MIT",
+    "license"  : "GPL-2.0",
     "keywords" : [
         "network",
         "exclusive",
