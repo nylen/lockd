@@ -110,6 +110,28 @@ LockdClient.prototype.dumpShared = function(lockName, cb) {
     this._dump(lockName, cb, true);
 };
 
+// Get stats information
+LockdClient.prototype.getStats = function(cb) {
+    var self = this;
+
+    self.transport.request('q\n', 16, function(err, lines) {
+        if (err) {
+            return cb(err);
+        }
+
+        var stats = {};
+
+        lines.forEach(function(line) {
+            var pos = line.indexOf(': '),
+                key = line.substring(0, pos),
+                val = line.substring(pos + 2);
+            stats[key] = +val;
+        });
+
+        cb(null, stats);
+    });
+};
+
 // Disconnect from the server.
 LockdClient.prototype.disconnect = function(cb) {
     var self = this;
