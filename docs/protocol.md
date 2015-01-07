@@ -87,7 +87,7 @@ another client.
 
 ### Dump locks and their holders: `d\n` or `d LOCKNAME\n`
 
-Only available if `lockd` was started with the `--allow-dump` option.
+Only available if the `dump` feature of the `lockd` server is enabled.
 
 This command is mainly useful for debugging.
 
@@ -103,7 +103,7 @@ This command is mainly useful for debugging.
 
 ### Dump the lock data structure: `dump\n`
 
-Only available if `lockd` was started with the `--allow-dump` option.
+Only available if the `dump` feature of the `lockd` server is enabled.
 
 This command is mainly useful for debugging.
 
@@ -166,7 +166,7 @@ and `0` represents failure or non-acquisition of the lock.
 
 ### Dump locks and their holders: `sd\n` or `sd LOCKNAME\n`
 
-Only available if `lockd` was started with the `--allow-dump` option.
+Only available if the `dump` feature of the `lockd` server is enabled.
 
 ```diff
 > sd
@@ -182,7 +182,7 @@ Only available if `lockd` was started with the `--allow-dump` option.
 
 ### Dump the lock data structure: `dump shared\n`
 
-Only available if `lockd` was started with the `--allow-dump` option.
+Only available if the `dump` feature of the `lockd` server is enabled.
 
 ```diff
 > dump shared
@@ -212,7 +212,7 @@ This command always returns two values:
 
 ### Set connection name: `iam NAME\n`
 
-Only available if `lockd` was started with the `--enable-registry` option.
+Only available if the `registry` feature of the `lockd` server is enabled.
 
 ```diff
 > g lock1
@@ -231,8 +231,8 @@ Only available if `lockd` was started with the `--enable-registry` option.
 
 ### List client names: `who\n` or `who NAME\n`
 
-Only available if `lockd` was started with both the `--allow-dump` and
-`--enable-registry` options.
+Only available if both the `dump` and `registry` features of the `lockd` server
+are enabled.
 
 ```diff
 > client1> who
