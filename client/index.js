@@ -63,7 +63,7 @@ function LockdClient(options) {
     // TODO what happens if e.g. a socket connection is lost?
     ['connect', 'error', 'close'].forEach(function(e) {
         self.transport.on(e, function() {
-            self.emit.apply(self, [e].concat(arguments));
+            self.emit.apply(self, [e].concat([].slice.call(arguments)));
         });
     });
 }

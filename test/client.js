@@ -254,6 +254,8 @@ describe('LockdClient', function() {
 
         var n = 0;
         function check() {
+            // Test passing arguments through multiple layers of events
+            [].slice.call(arguments).must.eql([]);
             if (++n == 2) {
                 testSequence(
                     [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],

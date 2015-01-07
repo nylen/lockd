@@ -45,7 +45,7 @@ function SocketTransport(options) {
             if (e == 'close' && self.disconnecting) {
                 return;
             }
-            self.emit.apply(self, [e].concat(arguments));
+            self.emit.apply(self, [e].concat([].slice.call(arguments)));
         });
     });
 
