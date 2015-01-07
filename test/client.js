@@ -24,6 +24,19 @@ describe('LockdClient', function() {
             client1 = newClient();
             client2 = newClient();
             client3 = newClient();
+            // TODO add a timeout here?  I got this failure once:
+            //   LockdClient allows a client to get a lock it already holds:
+            //     + expected - actual
+            //      [
+            //       "element 0"
+            //     +  null
+            //     +  1
+            //     +  "Lock Get Success: asdf"
+            //     -  "Lock Get Failure: asdf"
+            //      ]
+            // Probably because the server hadn't registered the client
+            // disconnection yet.  Another alternative would be to add a
+            // graceful disconnect feature to the protocol.
             done();
         }
 

@@ -110,6 +110,7 @@ LockdClient.prototype.dumpShared = function(lockName, cb) {
     this._dump(lockName, cb, true);
 };
 
+// Disconnect from the server.
 LockdClient.prototype.disconnect = function(cb) {
     var self = this;
 

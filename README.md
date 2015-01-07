@@ -64,6 +64,8 @@ var client = lockd.connect({
 });
 ```
 
+**TODO**: document that you can pass a `LockdServer` instance instead
+
 ### Server Installation
 
 To run a `lockd` server from the command line:
