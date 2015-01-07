@@ -92,8 +92,8 @@ addSimpleMethod('release', 'r %s\n');
 addSimpleMethod('inspect', 'i %s\n', false);
 
 // Dump exclusive locks (or a single exclusive lock).
-LockdClient.prototype.dump = function(lockName) {
-    throw new Error('not implemented');
+LockdClient.prototype.dump = function(lockName, cb) {
+    this._dump(lockName, cb, false);
 };
 
 // Get a shared lock.
@@ -106,8 +106,8 @@ addSimpleMethod('releaseShared', 'sr %s\n');
 addSimpleMethod('inspectShared', 'si %s\n', false);
 
 // Dump shared locks (or a single shared lock).
-LockdClient.prototype.dumpShared = function(lockName) {
-    throw new Error('not implemented');
+LockdClient.prototype.dumpShared = function(lockName, cb) {
+    this._dump(lockName, cb, true);
 };
 
 LockdClient.prototype.disconnect = function(cb) {
@@ -132,6 +132,46 @@ LockdClient.prototype._processResponseLine = function(cb, err, line, failureIsEr
     } else {
         cb(new Error(arr[1]));
     }
+};
+
+// Ask the server to dump exclusive or shared locks.
+LockdClient.prototype._dump = function(lockName, cb, isShared) {
+    var self = this;
+
+    var msg = (isShared ? 'sd' : 'd')
+            + (lockName ? ' ' + lockName : '')
+            + '\n';
+
+    self.transport.request(msg, function(err, lines) {
+        if (err) {
+            return cb(err);
+        }
+
+        if (lines.length == 1 && lines[0] == '0 disabled') {
+            return cb(new Error(
+                'The dump feature of the lockd server is disabled.'));
+        }
+
+        var locks = {};
+
+        lines.forEach(function(line) {
+            var pos    = line.indexOf(': '),
+                name   = line.substring(0, pos),
+                holder = line.substring(pos + 2);
+
+            if (isShared) {
+                (locks[name] = locks[name] || []).push(holder);
+            } else {
+                locks[name] = holder;
+            }
+        });
+
+        if (lockName) {
+            cb(null, locks[lockName] || (isShared ? [] : null));
+        } else {
+            cb(null, locks);
+        }
+    });
 };
 
 module.exports = LockdClient;

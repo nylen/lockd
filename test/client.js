@@ -40,6 +40,11 @@ describe('LockdClient', function() {
         }
     });
 
+    function address(client) {
+        var addr = client.transport.socket.address();
+        return addr.address + ':' + addr.port;
+    }
+
     function testSequence() {
         var steps   = [].slice.call(arguments, 0, -1),
             done    = arguments[arguments.length - 1],
@@ -196,5 +201,67 @@ describe('LockdClient', function() {
             [client3, 'releaseShared', 'asdf', null, 1, 'Shared Lock Release Success: asdf'],
             [client3, 'inspectShared', 'asdf', null, 0, 'Shared Lock Not Locked: asdf'],
             done);
+    });
+
+    var ifDumpDisabled_it = (process.env.LOCKD_DUMP_DISABLED ? it : it.skip),
+        ifDumpEnabled_it  = (process.env.LOCKD_DUMP_DISABLED ? it.skip : it);
+
+    ifDumpDisabled_it('forbids dumping exclusive locks', function(done) {
+        testSequence(
+            [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
+            [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
+            [client2, 'dump', 'asdf1', 'The dump feature of the lockd server is disabled.'],
+            done);
+    });
+
+    ifDumpDisabled_it('forbids dumping shared locks', function(done) {
+        testSequence(
+            [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
+            [client1, 'dumpShared', null   , 'The dump feature of the lockd server is disabled.'],
+            [client2, 'dumpShared', 'asdf1', 'The dump feature of the lockd server is disabled.'],
+            done);
+    });
+
+    ifDumpEnabled_it('allows dumping exclusive locks', function(done) {
+        // Need to wait for clients to connect so that we can get their socket
+        // addresses.
+
+        var n = 0;
+        function check() {
+            if (++n == 2) {
+                testSequence(
+                    [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
+                    [client2, 'get' , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
+                    [client1, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client1, 'dump', 'asdf2', null, address(client2)],
+                    [client1, 'dump', 'asdf3', null, null],
+                    done);
+            }
+        }
+
+        client1.on('connect', check);
+        client2.on('connect', check);
+    });
+
+    ifDumpEnabled_it('allows dumping shared locks', function(done) {
+        var n = 0;
+        function check() {
+            if (++n == 3) {
+                testSequence(
+                    [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
+                    [client1, 'getShared' , 'asdf2', null, 1, 'Shared Lock Get Success: asdf2'],
+                    [client2, 'getShared' , 'asdf2', null, 2, 'Shared Lock Get Success: asdf2'],
+                    [client1, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client2, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client1, 'dumpShared', 'asdf2', null, [address(client1), address(client2)]],
+                    [client1, 'dumpShared', 'asdf3', null, []],
+                    done);
+            }
+        }
+
+        client1.on('connect', check);
+        client2.on('connect', check);
+        client3.on('connect', check);
     });
 });

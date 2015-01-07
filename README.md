@@ -151,6 +151,21 @@ The callback `cb` is called with parameters (`err`, `count`, `msg`).
 
 `count` will be `1` if the lock is held by a client and `0` if it is free.
 
+### dump([lockName], cb)
+
+Returns information about the exclusive lock `lockName` (or all exclusive
+locks).  The callback `cb` is called with parameters (`err`, `lockInfo`), where
+`lockInfo` is defined as follows:
+
+- If `lockName` is given, then `lockInfo` is the address of the client holding
+  the exclusive lock `lockName`, or `null` if it is not held.
+- If `lockName` is not given, then `lockInfo` is a hash representing all
+  exclusive locks currently held, where keys are lock names and values are
+  client addresses.
+
+If the dump feature is disabled on the `lockd` server, then `err` will be set
+accordingly.
+
 ### getShared(lockName, cb)
 
 Acquires the shared lock `lockName`.  The callback `cb` is called with
@@ -175,6 +190,21 @@ The callback `cb` is called with parameters (`err`, `count`, `msg`).
 
 `count` will be `>= 1` if the lock is held by one or more clients and `0` if it
 is free.
+
+### dumpShared([lockName], cb)
+
+Returns information about the shared lock `lockName` (or all shared
+locks).  The callback `cb` is called with parameters (`err`, `lockInfo`), where
+`lockInfo` is defined as follows:
+
+- If `lockName` is given, then `lockInfo` is an array of the addresses of the
+  clients holding the shared lock `lockName`, or `[]` if it is not held.
+- If `lockName` is not given, then `lockInfo` is a hash representing all
+  shared locks currently held, where keys are lock names and values are arrays
+  of client addresses.
+
+If the dump feature is disabled on the `lockd` server, then `err` will be set
+accordingly.
 
 ### disconnect(cb)
 
