@@ -123,8 +123,7 @@ LockdClient.prototype.disconnect = function(cb) {
 // line.
 LockdClient.prototype._processResponseLine = function(cb, err, line, failureIsError) {
     if (err) {
-        cb(err);
-        return;
+        return cb(err);
     }
 
     var arr = utils.splitAtFirstSpace(line, true);
