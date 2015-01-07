@@ -207,19 +207,32 @@ describe('LockdClient', function() {
         ifDumpEnabled_it  = (process.env.LOCKD_DUMP_DISABLED ? it.skip : it);
 
     ifDumpDisabled_it('forbids dumping exclusive locks', function(done) {
+        var start = +new Date;
         testSequence(
             [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
             [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
             [client2, 'dump', 'asdf1', 'The dump feature of the lockd server is disabled.'],
-            done);
+            function() {
+                // Test the client library functionality to return before
+                // the read timeout if a special terminator line is
+                // received.  The default read timeout is 100ms.
+                var end = +new Date;
+                (end - start).must.be.below(100);
+                done();
+            });
     });
 
     ifDumpDisabled_it('forbids dumping shared locks', function(done) {
+        var start = +new Date;
         testSequence(
             [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
             [client1, 'dumpShared', null   , 'The dump feature of the lockd server is disabled.'],
             [client2, 'dumpShared', 'asdf1', 'The dump feature of the lockd server is disabled.'],
-            done);
+            function() {
+                var end = +new Date;
+                (end - start).must.be.below(100);
+                done();
+            });
     });
 
     ifDumpEnabled_it('allows dumping exclusive locks', function(done) {

@@ -142,7 +142,7 @@ LockdClient.prototype._dump = function(lockName, cb, isShared) {
             + (lockName ? ' ' + lockName : '')
             + '\n';
 
-    self.transport.request(msg, function(err, lines) {
+    self.transport.request(msg, '0 disabled', function(err, lines) {
         if (err) {
             return cb(err);
         }

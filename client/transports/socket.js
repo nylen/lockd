@@ -80,7 +80,18 @@ SocketTransport.prototype.request = function(msg, linesWanted, cb) {
 SocketTransport.prototype.read = function(linesWanted, cb) {
     var self = this;
 
-    var linesReceived = [];
+    var linesReceived = [],
+        terminator    = null;
+
+    if (typeof linesWanted == 'string') {
+        // The string passed in here represents a terminator line.  Wait for
+        // lines for a reasonable timeframe, and return immediately if the
+        // terminator line is received because we know we will not receive any
+        // more data from the server.  Receipt of this special line is not
+        // required.
+        terminator  = linesWanted;
+        linesWanted = null;
+    }
 
     if (linesWanted === 0) {
         // Nothing to do, call the callback immediately.  No need to use
@@ -111,15 +122,24 @@ SocketTransport.prototype.read = function(linesWanted, cb) {
         };
 
     } else {
-        // Wait for a reasonable timeframe, then return all lines received during that time.
-        setTimeout(function() {
+        // Wait for a reasonable timeframe, then return all lines received
+        // during that time.  Return early if the caller specified a terminator
+        // line and that line is received.
+
+        function send() {
+            clearTimeout(sendTimeout);
             self.reader = null;
             cb(null, linesReceived);
-        }, self.readTimeout);
+        }
+
+        var sendTimeout = setTimeout(send, self.readTimeout);
 
         self.reader = {
             processLine : function(line) {
                 linesReceived.push(line);
+                if (line === terminator) {
+                    send();
+                }
             }
         };
 
