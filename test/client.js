@@ -9,6 +9,8 @@ describe('LockdClient', function() {
         throw new Error('Run the tests with environment variable:  LOCKD_SERVER=host:port');
     }
 
+    var dumpDisabled = !!process.env.LOCKD_DUMP_DISABLED;
+
     function newClient() {
         return lockd.connect({
             tcp : process.env.LOCKD_SERVER
@@ -229,67 +231,67 @@ describe('LockdClient', function() {
             done);
     });
 
-    var dumpEnabled       = !process.env.LOCKD_DUMP_DISABLED,
-        ifDumpDisabled_it = (dumpEnabled ? it.skip : it),
-        ifDumpEnabled_it  = (dumpEnabled ? it : it.skip);
-
-    ifDumpDisabled_it('forbids dumping exclusive locks', function(done) {
-        var start = +new Date;
-        testSequence(
-            [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
-            [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
-            [client2, 'dump', 'asdf1', 'The dump feature of the lockd server is disabled.'],
-            function() {
-                // Test the client library functionality to return before
-                // the read timeout if a special terminator line is
-                // received.  The default read timeout is 100ms.
-                var end = +new Date;
-                (end - start).must.be.below(100);
-                done();
-            });
-    });
-
-    ifDumpDisabled_it('forbids dumping shared locks', function(done) {
-        var start = +new Date;
-        testSequence(
-            [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
-            [client1, 'dumpShared', null   , 'The dump feature of the lockd server is disabled.'],
-            [client2, 'dumpShared', 'asdf1', 'The dump feature of the lockd server is disabled.'],
-            function() {
-                var end = +new Date;
-                (end - start).must.be.below(100);
-                done();
-            });
-    });
-
-    ifDumpEnabled_it('allows dumping exclusive locks', function(done) {
-        // Need to wait for clients to connect so that we can get their socket
-        // addresses.
-        waitForConnections(function() {
+    if (dumpDisabled) {
+        it('forbids dumping exclusive locks', function(done) {
+            var start = +new Date;
             testSequence(
                 [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
-                [client2, 'get' , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
-                [client1, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
-                [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
-                [client1, 'dump', 'asdf2', null, address(client2)],
-                [client1, 'dump', 'asdf3', null, null],
-                done);
+                [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
+                [client2, 'dump', 'asdf1', 'The dump feature of the lockd server is disabled.'],
+                function() {
+                    // Test the client library functionality to return before
+                    // the read timeout if a special terminator line is
+                    // received.  The default read timeout is 100ms.
+                    var end = +new Date;
+                    (end - start).must.be.below(100);
+                    done();
+                });
         });
-    });
 
-    ifDumpEnabled_it('allows dumping shared locks', function(done) {
-        waitForConnections(function() {
+        it('forbids dumping shared locks', function(done) {
+            var start = +new Date;
             testSequence(
                 [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
-                [client1, 'getShared' , 'asdf2', null, 1, 'Shared Lock Get Success: asdf2'],
-                [client2, 'getShared' , 'asdf2', null, 2, 'Shared Lock Get Success: asdf2'],
-                [client1, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
-                [client2, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
-                [client1, 'dumpShared', 'asdf2', null, [address(client1), address(client2)]],
-                [client1, 'dumpShared', 'asdf3', null, []],
-                done);
+                [client1, 'dumpShared', null   , 'The dump feature of the lockd server is disabled.'],
+                [client2, 'dumpShared', 'asdf1', 'The dump feature of the lockd server is disabled.'],
+                function() {
+                    var end = +new Date;
+                    (end - start).must.be.below(100);
+                    done();
+                });
         });
-    });
+    }
+
+    if (!dumpDisabled) {
+        it('allows dumping exclusive locks', function(done) {
+            // Need to wait for clients to connect so that we can get their socket
+            // addresses.
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
+                    [client2, 'get' , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
+                    [client1, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client1, 'dump', 'asdf2', null, address(client2)],
+                    [client1, 'dump', 'asdf3', null, null],
+                    done);
+            });
+        });
+
+        it('allows dumping shared locks', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
+                    [client1, 'getShared' , 'asdf2', null, 1, 'Shared Lock Get Success: asdf2'],
+                    [client2, 'getShared' , 'asdf2', null, 2, 'Shared Lock Get Success: asdf2'],
+                    [client1, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client2, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client1, 'dumpShared', 'asdf2', null, [address(client1), address(client2)]],
+                    [client1, 'dumpShared', 'asdf3', null, []],
+                    done);
+            });
+        });
+    }
 
     it('allows getting connection stats', function(done) {
         var statsChangesExpected = {
@@ -344,12 +346,12 @@ describe('LockdClient', function() {
                     [client2, 'get'    , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
                     [client3, 'get'    , 'asdf3', null, 1, 'Lock Get Success: asdf3'],
 
-                    (dumpEnabled
-                        ? [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2), 'asdf3' : address(client3) }]
-                        : [client2, 'dump', null   , 'The dump feature of the lockd server is disabled.']),
-                    (dumpEnabled
-                        ? [client1, 'dump', 'asdf2', null, address(client2)]
-                        : [client1, 'dump', 'asdf2', 'The dump feature of the lockd server is disabled.']),
+                    (dumpDisabled
+                        ? [client2, 'dump', null   , 'The dump feature of the lockd server is disabled.']
+                        : [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2), 'asdf3' : address(client3) }]),
+                    (dumpDisabled
+                        ? [client1, 'dump', 'asdf2', 'The dump feature of the lockd server is disabled.']
+                        : [client1, 'dump', 'asdf2', null, address(client2)]),
 
                     [client1, 'inspectShared', 'asdf', null, 0, 'Shared Lock Not Locked: asdf'],
                     [client1, 'getShared'    , 'asdf', null, 1, 'Shared Lock Get Success: asdf'],
@@ -358,9 +360,9 @@ describe('LockdClient', function() {
                     [client2, 'releaseShared', 'asdf', null, 1, 'Shared Lock Release Success: asdf'],
                     [client2, 'getShared'    , 'asdg', null, 1, 'Shared Lock Get Success: asdg'],
 
-                    (dumpEnabled
-                        ? [client1, 'dumpShared', 'asdf', null, [address(client1), address(client3)]]
-                        : [client1, 'dumpShared', 'asdf', 'The dump feature of the lockd server is disabled.']),
+                    (dumpDisabled
+                        ? [client1, 'dumpShared', 'asdf', 'The dump feature of the lockd server is disabled.']
+                        : [client1, 'dumpShared', 'asdf', null, [address(client1), address(client3)]]),
 
                     next);
             },
@@ -386,11 +388,11 @@ describe('LockdClient', function() {
             function(next) {
                 client1.transport.request('dump\n', 1, function(err, lines) {
                     must(err).not.exist();
-                    if (dumpEnabled) {
+                    if (dumpDisabled) {
+                        lines.must.eql(['0 disabled']);
+                    } else {
                         lines.must.have.length(1);
                         lines[0].must.match(/^(map\[|{)/);
-                    } else {
-                        lines.must.eql(['0 disabled']);
                     }
                     next();
                 });
@@ -399,11 +401,11 @@ describe('LockdClient', function() {
             function(next) {
                 client1.transport.request('dump shared\n', 1, function(err, lines) {
                     must(err).not.exist();
-                    if (dumpEnabled) {
+                    if (dumpDisabled) {
+                        lines.must.eql(['0 disabled']);
+                    } else {
                         lines.must.have.length(1);
                         lines[0].must.match(/^(map\[|{)/);
-                    } else {
-                        lines.must.eql(['0 disabled']);
                     }
                     next();
                 });
