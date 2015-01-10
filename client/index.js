@@ -177,7 +177,10 @@ LockdClient.prototype.listClients = function(clientName, cb) {
 LockdClient.prototype.getStats = function(cb) {
     var self = this;
 
-    self.transport.request('q\n', 16, function(err, lines) {
+    // can't use fixed number of lines because registry commands like
+    // 'command_me' only appear in stats output after they have been executed
+    // at least once
+    self.transport.request('q\n', function(err, lines) {
         if (err) {
             return cb(err);
         }
