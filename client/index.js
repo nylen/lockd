@@ -160,6 +160,11 @@ LockdClient.prototype._processResponseLine = function(cb, err, line, failureIsEr
 LockdClient.prototype._dump = function(lockName, cb, isShared) {
     var self = this;
 
+    if (typeof lockName == 'function') {
+        cb = lockName;
+        lockName = null;
+    }
+
     var msg = (isShared ? 'sd' : 'd')
             + (lockName ? ' ' + lockName : '')
             + '\n';

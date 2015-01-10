@@ -95,7 +95,7 @@ describe('LockdClient', function() {
         asyncFn(steps, function(step, nextStep) {
             var obj      = step[0],
                 fn       = step[1],
-                args     = [].concat(step[2]),
+                args     = (step[2] === null ? [] : [step[2]]),
                 expected = step.slice(3, -1),
                 index    = 'element ' + step[step.length - 1];
             obj[fn].apply(obj, args.concat(function() {
