@@ -294,7 +294,7 @@ describe('LockdClient', function() {
     it('allows getting connection stats', function(done) {
         var statsChangesExpected = {
                 command_d        : 2,
-                command_dump     : 0,
+                command_dump     : 2,
                 command_g        : 4,
                 command_i        : 3,
                 command_q        : 1,
@@ -374,7 +374,7 @@ describe('LockdClient', function() {
                 });
             },
 
-            // TODO remove this to better diagnose race conditions (it has a 100ms timeout)
+            // note: remove this to better diagnose race conditions (it has a 100ms timeout)
             function(next) {
                 client1.transport.request('xx\n', function(err, lines) {
                     must(err).not.exist();
@@ -383,7 +383,31 @@ describe('LockdClient', function() {
                 });
             },
 
-            // TODO dump, dump shared
+            function(next) {
+                client1.transport.request('dump\n', 1, function(err, lines) {
+                    must(err).not.exist();
+                    if (dumpEnabled) {
+                        lines.must.have.length(1);
+                        lines[0].must.match(/^(map\[|{)/);
+                    } else {
+                        lines.must.eql(['0 disabled']);
+                    }
+                    next();
+                });
+            },
+
+            function(next) {
+                client1.transport.request('dump shared\n', 1, function(err, lines) {
+                    must(err).not.exist();
+                    if (dumpEnabled) {
+                        lines.must.have.length(1);
+                        lines[0].must.match(/^(map\[|{)/);
+                    } else {
+                        lines.must.eql(['0 disabled']);
+                    }
+                    next();
+                });
+            },
 
             function(next) {
                 client2.getStats(function(err, stats) {
