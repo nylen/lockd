@@ -9,7 +9,8 @@ describe('LockdClient', function() {
         throw new Error('Run the tests with environment variable:  LOCKD_SERVER=host:port');
     }
 
-    var dumpDisabled = !!process.env.LOCKD_DUMP_DISABLED;
+    var dumpDisabled     = !!process.env.LOCKD_DUMP_DISABLED,
+        registryDisabled = !!process.env.LOCKD_REGISTRY_DISABLED;
 
     function newClient() {
         return lockd.connect({
@@ -292,6 +293,104 @@ describe('LockdClient', function() {
             });
         });
     }
+
+    if (registryDisabled) {
+        it('allows getting but not setting connection names', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    // According to the docs, I think this is what the
+                    // responses should be, but glockd doesn't respond to
+                    // registry commands at all if the registry feature is
+                    // disabled (see main.go:98)
+                    // [client1, 'getName', null, null, address(client1), address(client1)],
+                    // [client1, 'setName', 'c1', 'The registry feature of the lockd server is disabled.'],
+                    // [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, 'Expected 1 line but got 0'],
+                    [client1, 'setName', 'c1', 'Expected 1 line but got 0'],
+                    [client1, 'getName', null, 'Expected 1 line but got 0'],
+                    done);
+            });
+        });
+    }
+
+    if (!registryDisabled) {
+        it('allows getting and setting connection names', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    done);
+            });
+        });
+    }
+
+    if (!registryDisabled && dumpDisabled) {
+        it('forbids viewing the names of other clients', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
+                    [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
+                    done);
+            });
+        });
+    }
+
+    if (!registryDisabled && !dumpDisabled) {
+        it('uses client names in dump output', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
+                    [client1, 'dump', null   , null, { 'asdf1' : 'c1' }],
+                    [client2, 'dump', null   , null, { 'asdf1' : 'c1' }],
+                    done);
+            });
+        });
+
+        it('uses client names in dumpShared output', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
+                    [client1, 'dumpShared', null   , null, { 'asdf1' : ['c1'] }],
+                    [client2, 'dumpShared', null   , null, { 'asdf1' : ['c1'] }],
+                    done);
+            });
+        });
+
+        it('allows listing client names', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client2, 'setName', 'c2', null, 1, 'ok'],
+                    [client2, 'listClients', 'c1', null, address(client1)],
+                    [client3, 'listClients', null, null, { 'c1' : address(client1), 'c2' : address(client2) }],
+                    done);
+            });
+        });
+    }
+
+    if (registryDisabled || dumpDisabled) {
+        it('forbids listing client names', function(done) {
+            testSequence(
+                [client1, 'listClients', null, 'The registry feature of the lockd server is disabled.'],
+                [client1, 'listClients', 'c1', 'The registry feature of the lockd server is disabled.'],
+                done);
+        });
+    }
+
 
     it('allows getting connection stats', function(done) {
         var statsChangesExpected = {

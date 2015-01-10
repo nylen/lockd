@@ -73,10 +73,10 @@ util.inherits(LockdClient, events.EventEmitter);
 // Add a simple method to the client prototype which sends a message to the
 // lockd server and expects a single line back in response.
 function addSimpleMethod(name, msg, failureIsError) {
-    LockdClient.prototype[name] = function(lockName, cb) {
+    LockdClient.prototype[name] = function(objName, cb) {
         var self = this;
 
-        self.transport.request(util.format(msg, lockName), 1, function(err, lines) {
+        self.transport.request(util.format(msg, objName), 1, function(err, lines) {
             self._processResponseLine(cb, err, lines && lines[0], failureIsError);
         });
     };
@@ -108,6 +108,69 @@ addSimpleMethod('inspectShared', 'si %s\n', false);
 // Dump shared locks (or a single shared lock).
 LockdClient.prototype.dumpShared = function(lockName, cb) {
     this._dump(lockName, cb, true);
+};
+
+// Get the name registered to the current client.
+LockdClient.prototype.getName = function(cb) {
+    var self = this;
+
+    self.transport.request('me\n', 1, function(err, lines) {
+        if (err) {
+            return cb(err);
+        }
+        // split line into [1, '1.2.3.4:5 name']
+        var arr = utils.splitAtFirstSpace(lines[0], true);
+        if (!arr[0]) {
+            // this shouldn't be possible
+            return cb(new Error(arr[1] || 'Bad response from lockd server'));
+        }
+        // split into ['1.2.3.4:5', 'name']
+        arr = utils.splitAtFirstSpace(arr[1]);
+        cb(null, arr[0], arr[1]);
+    });
+};
+
+// Set the name for the current client.
+addSimpleMethod('setName', 'iam %s\n', true);
+
+// List client names connected to this lockd server.
+LockdClient.prototype.listClients = function(clientName, cb) {
+    var self = this;
+
+    if (typeof clientName == 'function') {
+        cb = clientName;
+        clientName = null;
+    }
+
+    var msg = 'who'
+            + (clientName ? ' ' + clientName : '')
+            + '\n';
+
+    self.transport.request(msg, '0 disabled', function(err, lines) {
+        if (err) {
+            return cb(err);
+        }
+
+        if (lines.length == 1 && lines[0] == '0 disabled') {
+            return cb(new Error(
+                'The registry feature of the lockd server is disabled.'));
+        }
+
+        var clients = {};
+
+        lines.forEach(function(line) {
+            var pos  = line.indexOf(': '),
+                addr = line.substring(0, pos),
+                name = line.substring(pos + 2);
+            clients[name] = addr;
+        });
+
+        if (clientName) {
+            cb(null, clients[clientName] || null);
+        } else {
+            cb(null, clients);
+        }
+    });
 };
 
 // Get stats information

@@ -208,6 +208,41 @@ locks).  The callback `cb` is called with parameters (`err`, `lockInfo`), where
 If the dump feature is disabled on the `lockd` server, then `err` will be set
 accordingly.
 
+### getName(cb)
+
+Returns the name registered to the current client.  The callback `cb` is called
+with parameters (`err`, `addr`, `name`) where:
+
+- `addr` is the client socket's `address:port`.
+- `name` is the friendly name registered to the client (or the same as `addr`
+  if none has been registered).
+
+If the registry feature is disabled on the `lockd` server, then `name` will
+always equal `addr`.
+
+### setName(name, cb)
+
+Sets the name of the current client.  The callback `cb` is called with
+with parameters (`err`, `ok`, `msg`).
+
+If the registry feature is disabled on the `lockd` server, then `err` will be
+set accordingly.
+
+### listClients([clientName], cb)
+
+Returns information about the client with registered name `clientName` (or all
+clients with registered names).  The callback `cb` is called with parameters
+(`err`, `clientInfo`), where `clientInfo` is defined as follows:
+
+- If `clientName` is given, then `clientInfo` is the `address:port` of the
+  client with that name, or `null` if there is no such client.
+- If `clientName` is not given, then `clientInfo` is a hash representing all
+  clients with registered names, where keys are client names and values are
+  client `address:port` strings.
+
+If the registry feature is disabled on the `lockd` server, then `err` will be
+set accordingly.
+
 ### disconnect(cb)
 
 Closes the connection to the `lockd` server (if any).  This will also cause any
