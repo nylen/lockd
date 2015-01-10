@@ -425,9 +425,9 @@ describe('LockdClient', function() {
             function(next) {
                 client1.getStats(function(err, stats) {
                     must(err).not.exist();
-                    // Bug in glockd: if launched with -registry=false then
-                    // command_iam will never be set
                     stats.command_iam = stats.command_iam || 0;
+                    stats.command_me  = stats.command_me  || 0;
+                    stats.command_who = stats.command_who || 0;
                     stats1 = stats;
                     Object.keys(stats).must.be.a.permutationOf(statsKeys);
                     statsKeys.forEach(function(k) {
