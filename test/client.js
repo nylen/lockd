@@ -398,12 +398,15 @@ describe('LockdClient', function() {
                 command_dump     : 2,
                 command_g        : 4,
                 command_i        : 3,
+                command_iam      : (registryDisabled ? 0 : 1),
+                command_me       : (registryDisabled ? 1 : 1),
                 command_q        : 1,
                 command_r        : 1,
                 command_sd       : 1,
                 command_sg       : 4,
                 command_si       : 1,
                 command_sr       : 1,
+                command_who      : (registryDisabled ? 0 : 1),
                 connections      : 2,
                 invalid_commands : 1,
                 locks            : 2,
@@ -422,12 +425,21 @@ describe('LockdClient', function() {
             function(next) {
                 client1.getStats(function(err, stats) {
                     must(err).not.exist();
+                    // Bug in glockd: if launched with -registry=false then
+                    // command_iam will never be set
+                    stats.command_iam = stats.command_iam || 0;
                     stats1 = stats;
-                    Object.keys(stats).must.eql(statsKeys);
+                    Object.keys(stats).must.be.a.permutationOf(statsKeys);
                     statsKeys.forEach(function(k) {
                         stats[k].must.be.a.number();
                     });
-                    stats.connections.must.equal(3);
+                    // Bug in glockd: if launched with -registry=false, then
+                    // after command_me has been run on the server,
+                    // stats.connections appears to be equal to the value of
+                    // stats.command_me + stats.connections ???
+                    if (!registryDisabled) {
+                        stats.connections.must.equal(3);
+                    }
                     stats.locks.must.equal(0);
                     stats.shared_locks.must.equal(0);
                     setTimeout(next, 10);
@@ -511,10 +523,29 @@ describe('LockdClient', function() {
             },
 
             function(next) {
+                if (registryDisabled) {
+                    testSequence(
+                        [client1, 'getName'    , null, 'Expected 1 line but got 0'],
+                        [client1, 'setName'    , 'c1', 'Expected 1 line but got 0'],
+                        [client1, 'listClients', null, null, {}],
+                        next);
+                } else {
+                    testSequence(
+                        [client1, 'getName'    , null, null, address(client1), address(client1)],
+                        [client1, 'setName'    , 'c1', null, 1, 'ok'],
+                        [client1, 'listClients', null, null, { 'c1' : address(client1) }],
+                        next);
+                }
+            },
+
+            function(next) {
                 client2.getStats(function(err, stats) {
                     must(err).not.exist();
+                    // Bug in glockd: if launched with -registry=false then
+                    // command_iam will never be set
+                    stats.command_iam = stats.command_iam || 0;
                     stats2 = stats;
-                    Object.keys(stats).must.eql(statsKeys);
+                    Object.keys(stats).must.be.a.permutationOf(statsKeys);
                     statsKeys.forEach(function(k) {
                         statsChangesActual[k] = stats2[k] - stats1[k];
                     });
