@@ -23,22 +23,23 @@ function SocketTransport(options) {
     });
 
     // Listen for lines arriving from the server and process them in order
-    self.socket.pipe(split(function(line) {
-        var reader = self.reader;
-        if (!reader) {
-            self.emit('error', new Error(
-                'Unexpected data received from lockd server: ' + line));
-            return;
-        }
-        if (reader.linesWanted) {
-            if (reader.linesWanted == 1) {
-                self.reader = null;
-            } else {
-                reader.linesWanted--;
+    self.socket.pipe(split())
+        .on('data', function(line) {
+            var reader = self.reader;
+            if (!reader) {
+                self.emit('error', new Error(
+                    'Unexpected data received from lockd server: ' + line));
+                return;
             }
-        }
-        reader.processLine(line);
-    }));
+            if (reader.linesWanted) {
+                if (reader.linesWanted == 1) {
+                    self.reader = null;
+                } else {
+                    reader.linesWanted--;
+                }
+            }
+            reader.processLine(line);
+        });
 
     ['connect', 'error', 'close'].forEach(function(e) {
         self.socket.on(e, function() {
