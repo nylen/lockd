@@ -391,7 +391,6 @@ describe('LockdClient', function() {
         });
     }
 
-
     it('allows getting connection stats', function(done) {
         var statsChangesExpected = {
                 command_d        : 2,
