@@ -243,6 +243,17 @@ clients with registered names).  The callback `cb` is called with parameters
 If the registry feature is disabled on the `lockd` server, then `err` will be
 set accordingly.
 
+### getStats(cb)
+
+Returns statistics about the operation of the server.  The callback `cb` is
+called with parameters (`err`, `stats`).
+
+`stats` is an object with properties like `command_X` representing the number
+of times command `X` has been executed, and a few other pieces of information.
+For details about the available statistics, see the
+[Stats API section](https://github.com/nylen/lockd/blob/master/docs/protocol.md#stats-api)
+of the protocol documentation.
+
 ### disconnect(cb)
 
 Closes the connection to the `lockd` server (if any).  This will also cause any
