@@ -126,7 +126,18 @@ LockdClient.prototype.getName = function(cb) {
 };
 
 // Set the name for the current client.
-addSimpleMethod('setName', 'iam %s\n', true);
+LockdClient.prototype.setName = function(clientName, cb) {
+    var self = this;
+
+    self.transport.request(util.format('iam %s\n', clientName), 1, function(err, lines) {
+        if (lines && lines[0] == '0 disabled') {
+            cb(new Error(
+                'The registry feature of the lockd server is disabled.'));
+        } else {
+            self._processResponseLine(cb, err, lines && lines[0], true);
+        }
+    });
+};
 
 // List client names connected to this lockd server.
 LockdClient.prototype.listClients = function(clientName, cb) {
