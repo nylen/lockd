@@ -313,6 +313,12 @@ describe('LockdClient', function() {
             });
         });
 
+        it('returns null when dumping an exclusive lock nobody is holding', function(done) {
+            testSequence(
+                [client1, 'dump', 'empty', null, null],
+                done);
+        });
+
         it('allows dumping shared locks', function(done) {
             waitForConnections(function() {
                 testSequence(
@@ -329,6 +335,12 @@ describe('LockdClient', function() {
                     [client1, 'dumpShared', 'asdf3', null, []],
                     done);
             });
+        });
+
+        it('returns [] when dumping a shared lock nobody is holding', function(done) {
+            testSequence(
+                [client1, 'dumpShared', 'empty', null, []],
+                done);
         });
     }
 
