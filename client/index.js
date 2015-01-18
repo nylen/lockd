@@ -5,14 +5,9 @@ var events = require('events'),
     util   = require('util'),
     utils  = require('../lib/utils');
 
-var transports = {};
-
-fs.readdirSync(path.join(__dirname, 'transports')).forEach(function(fn) {
-    var name = fn.replace(/\.js$/, '');
-    if (fn != name) {
-        transports[name] = require('./transports/' + name);
-    }
-});
+var transports = {
+    socket : require('./transports/socket')
+};
 
 function LockdClient(options) {
     if (!(this instanceof LockdClient)) {
