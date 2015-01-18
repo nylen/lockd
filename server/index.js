@@ -111,6 +111,18 @@ LockdServer.prototype.receive = function(client, line, reply) {
         case 'dump':
             response = self.command_dump(client, arg);
             break;
+        case 'me':
+            response = self.command_me(client, arg);
+            break;
+        case 'iam':
+            response = self.command_iam(client, arg);
+            break;
+        case 'who':
+            response = self.command_who(client, arg);
+            break;
+        case 'q':
+            response = self.command_q(client, arg);
+            break;
         default:
             isValid = false;
             break;
@@ -128,6 +140,10 @@ LockdServer.prototype.receive = function(client, line, reply) {
         return;
     }
     if (util.isArray(response)) {
+        if (!response.length) {
+            // no reply
+            return;
+        }
         response = response.join('\n');
     }
     reply(response + '\n');
@@ -273,6 +289,63 @@ LockdServer.prototype.command_dump = function(client, arg) {
     } else {
         return JSON.stringify(self.exclusiveLocks);
     }
+};
+
+// Get connection name
+LockdServer.prototype.command_me = function(client, arg) {
+    var self = this;
+
+    return '1 ' + client + ' ' + self.clientName(client);
+};
+
+// Set connection name
+LockdServer.prototype.command_iam = function(client, newName) {
+    var self = this;
+
+    if (!self.features.registry) {
+        return '0 disabled';
+    } else {
+        self.registry[client] = newName;
+        return '1 ok';
+    }
+};
+
+// List client names
+LockdServer.prototype.command_who = function(client, name) {
+    var self = this;
+
+    if (!self.features.dump || !self.features.registry) {
+        return '0 disabled';
+    } else if (name) {
+        var owner = null;
+        for (var client in self.registry) {
+            if (self.registry[client] == name) {
+                owner = client;
+            }
+        }
+        if (owner) {
+            return owner + ': ' + self.registry[owner];
+        } else {
+            // no reply
+            return null;
+        }
+    } else {
+        return Object.keys(self.registry).map(function(client) {
+            return client + ': ' + self.registry[client];
+        });
+    }
+};
+
+// Get stats information
+LockdServer.prototype.command_q = function(client, arg) {
+    var self = this;
+
+    self.stats.locks        = Object.keys(self.exclusiveLocks).length;
+    self.stats.shared_locks = Object.keys(self.sharedLocks).length;
+
+    return Object.keys(self.stats).sort().map(function(stat) {
+        return stat + ': ' + self.stats[stat];
+    });
 };
 
 LockdServer.prototype.disconnect = function(client) {
