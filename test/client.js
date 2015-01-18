@@ -29,19 +29,6 @@ describe('LockdClient', function() {
             client1 = newClient();
             client2 = newClient();
             client3 = newClient();
-            // TODO add a timeout here?  I got this failure once:
-            //   LockdClient allows a client to get a lock it already holds:
-            //     + expected - actual
-            //      [
-            //       "element 0"
-            //     +  null
-            //     +  1
-            //     +  "Lock Get Success: asdf"
-            //     -  "Lock Get Failure: asdf"
-            //      ]
-            // Probably because the server hadn't registered the client
-            // disconnection yet.  Another alternative would be to add a
-            // graceful disconnect feature to the protocol.
             done();
         }
 
@@ -350,16 +337,9 @@ describe('LockdClient', function() {
         it('allows getting but not setting connection names', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    // According to the docs, I think this is what the
-                    // responses should be, but glockd doesn't respond to
-                    // registry commands at all if the registry feature is
-                    // disabled (see main.go:98)
-                    // [client1, 'getName', null, null, address(client1), address(client1)],
-                    // [client1, 'setName', 'c1', 'The registry feature of the lockd server is disabled.'],
-                    // [client1, 'getName', null, null, address(client1), address(client1)],
-                    [client1, 'getName', null, 'Expected 1 line but got 0'],
-                    [client1, 'setName', 'c1', 'Expected 1 line but got 0'],
-                    [client1, 'getName', null, 'Expected 1 line but got 0'],
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', 'The registry feature of the lockd server is disabled.'],
+                    [client1, 'getName', null, null, address(client1), address(client1)],
                     done);
             });
         });
@@ -499,15 +479,15 @@ describe('LockdClient', function() {
                 command_dump     : 2,
                 command_g        : 4,
                 command_i        : 3,
-                command_iam      : (registryDisabled ? 0 : 1),
-                command_me       : (registryDisabled ? 1 : 1),
+                command_iam      : 1,
+                command_me       : 1,
                 command_q        : 1,
                 command_r        : 1,
                 command_sd       : 1,
                 command_sg       : 4,
                 command_si       : 1,
                 command_sr       : 1,
-                command_who      : (registryDisabled ? 0 : 1),
+                command_who      : 1,
                 connections      : 2,
                 invalid_commands : 1,
                 locks            : 2,
@@ -535,13 +515,7 @@ describe('LockdClient', function() {
                     statsKeys.forEach(function(k) {
                         stats[k].must.be.a.number();
                     });
-                    // Bug in glockd: if launched with -registry=false, then
-                    // after command_me has been run on the server,
-                    // stats.connections appears to be equal to the value of
-                    // stats.command_me + stats.connections ???
-                    if (!registryDisabled) {
-                        stats.connections.must.equal(3);
-                    }
+                    stats.connections.must.equal(3);
                     stats.locks.must.equal(0);
                     stats.shared_locks.must.equal(0);
                     setTimeout(next, 10);
@@ -627,11 +601,9 @@ describe('LockdClient', function() {
             function(next) {
                 if (registryDisabled) {
                     testSequence(
-                        [client1, 'getName'    , null, 'Expected 1 line but got 0'],
-                        [client1, 'setName'    , 'c1', 'Expected 1 line but got 0'],
-                        // TODO should be:
-                        // [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
-                        [client1, 'listClients', null, null, {}],
+                        [client1, 'getName'    , null, null, address(client1), address(client1)],
+                        [client1, 'setName'    , 'c1', 'The registry feature of the lockd server is disabled.'],
+                        [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
                         next);
                 } else {
                     testSequence(
@@ -650,9 +622,6 @@ describe('LockdClient', function() {
                 client2.getStats(function(err, stats) {
                     must(err).not.exist();
                     Object.keys(stats).must.eql(Object.keys(stats).sort());
-                    // Bug in glockd: if launched with -registry=false then
-                    // command_iam will never be set
-                    stats.command_iam = stats.command_iam || 0;
                     stats2 = stats;
                     Object.keys(stats).must.be.a.permutationOf(statsKeys);
                     statsKeys.forEach(function(k) {
