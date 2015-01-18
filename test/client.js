@@ -2,7 +2,9 @@ var async  = require('async'),
     domain = require('domain'),
     lockd  = require('../index'),
     mocha  = require('mocha'),
-    must   = require('must');
+    must   = require('must'),
+    net    = require('net'),
+    split  = require('split');
 
 describe('LockdClient', function() {
     if (!process.env.LOCKD_SERVER) {
@@ -673,6 +675,126 @@ describe('LockdClient', function() {
             // multiple layers of events is a little tricky
             [].slice.call(arguments).must.eql([]);
             done();
+        });
+    });
+
+    it('deals with misbehaving servers that never send responses', function(done) {
+        server = net.createServer(function(c) {
+            c.pipe(split()).on('data', function(line) {
+                // console.log('bad server is discarding request: "%s"', line);
+            });
+        }).listen(6767, function() {
+            var client = lockd.connect({ tcp : 'localhost:6767' });
+            testSequence(
+                [client, 'get'          , 'asdf', 'Expected 1 line but got 0'],
+                [client, 'inspect'      , 'asdf', 'Expected 1 line but got 0'],
+                [client, 'release'      , 'asdf', 'Expected 1 line but got 0'],
+                [client, 'dump'         , 'asdf', null, null],
+                [client, 'dump'         , null  , null, {}],
+                [client, 'getShared'    , 'asdf', 'Expected 1 line but got 0'],
+                [client, 'inspectShared', 'asdf', 'Expected 1 line but got 0'],
+                [client, 'releaseShared', 'asdf', 'Expected 1 line but got 0'],
+                [client, 'dumpShared'   , 'asdf', null, []],
+                [client, 'dumpShared'   , null  , null, {}],
+                [client, 'getName'      , null  , 'Expected 1 line but got 0'],
+                [client, 'setName'      , 'c1'  , 'Expected 1 line but got 0'],
+                [client, 'listClients'  , 'c1'  , null, null],
+                [client, 'listClients'  , null  , null, {}],
+                [client, 'getStats'     , null  , null, {}],
+                function() {
+                    client.disconnect(function() {
+                        server.close(function() {
+                            done();
+                        });
+                    });
+                });
+        });
+    });
+
+    it('deals with misbehaving servers that send back extra blank lines', function(done) {
+        server = net.createServer(function(c) {
+            var addr = c.remoteAddress + ':' + c.remotePort;
+            c.pipe(split()).on('data', function(line) {
+                switch (line) {
+                    case 'g asdf':
+                        c.write('1 Lock Get Success: asdf\n\n');
+                        break;
+                    case 'i asdf':
+                        c.write('1 Lock Is Locked: asdf\n\n');
+                        break;
+                    case 'd asdf':
+                        c.write('asdf: ' + addr + '\n\n');
+                        break;
+                    case 'd':
+                        c.write('asdf: ' + addr + '\n\n');
+                        break;
+                    case 'r asdf':
+                        c.write('1 Lock Release Success: asdf\n\n');
+                        break;
+                    case 'sg asdf':
+                        c.write('1 Shared Lock Get Success: asdf\n\n');
+                        break;
+                    case 'si asdf':
+                        c.write('1 Shared Lock Is Locked: asdf\n\n');
+                        break;
+                    case 'sd asdf':
+                        c.write('asdf: ' + addr + '\n\n');
+                        break;
+                    case 'sd':
+                        c.write('asdf: ' + addr + '\n\n');
+                        break;
+                    case 'sr asdf':
+                        c.write('1 Shared Lock Release Success: asdf\n\n');
+                        break;
+                    case 'me':
+                        c.write('1 ' + addr + ' ' + addr + '\n\n');
+                        break;
+                    case 'iam c1':
+                        c.write('1 ok\n\n');
+                        break;
+                    case 'who c1':
+                        c.write(addr + ': c1\n\n');
+                        break;
+                    case 'who':
+                        c.write(addr + ': c1\n\n');
+                        break;
+                    case 'q':
+                        c.write('command_d: 348\n');
+                        // stats truncated
+                        c.write('shared_orphans: 273\n\n');
+                        break;
+                }
+            });
+        }).listen(6767, function() {
+            var client = lockd.connect({ tcp : 'localhost:6767' });
+            client.on('connect', function() {
+                testSequence(
+                    [client, 'get'          , 'asdf', null, 1, 'Lock Get Success: asdf'],
+                    [client, 'inspect'      , 'asdf', null, 1, 'Lock Is Locked: asdf'],
+                    [client, 'release'      , 'asdf', null, 1, 'Lock Release Success: asdf'],
+                    [client, 'dump'         , 'asdf', null, address(client)],
+                    [client, 'dump'         , null  , null, { 'asdf' : address(client) }],
+                    [client, 'getShared'    , 'asdf', null, 1, 'Shared Lock Get Success: asdf'],
+                    [client, 'inspectShared', 'asdf', null, 1, 'Shared Lock Is Locked: asdf'],
+                    [client, 'releaseShared', 'asdf', null, 1, 'Shared Lock Release Success: asdf'],
+                    [client, 'dumpShared'   , 'asdf', null, [address(client)]],
+                    [client, 'dumpShared'   , null  , null, { 'asdf' : [address(client)] }],
+                    [client, 'getName'      , null  , null, address(client), address(client)],
+                    [client, 'setName'      , 'c1'  , null, 1, 'ok'],
+                    [client, 'listClients'  , 'c1'  , null, address(client)],
+                    [client, 'listClients'  , null  , null, { 'c1' : address(client) }],
+                    [client, 'getStats'     , null  , null, { command_d : 348, shared_orphans : 273 }],
+                    function() {
+                        client.disconnect(function() {
+                            server.close(function() {
+                                done();
+                            });
+                        });
+                    });
+            });
+            client.on('error', function(err) {
+                console.log(err.message);
+            });
         });
     });
 });
