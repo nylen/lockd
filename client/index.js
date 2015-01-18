@@ -148,7 +148,7 @@ LockdClient.prototype.listClients = function(clientName, cb) {
 
         if (lines.length == 1 && lines[0] == '0 disabled') {
             return cb(new Error(
-                'The registry feature of the lockd server is disabled.'));
+                'The dump and/or registry features of the lockd server are disabled.'));
         }
 
         var clients = {};

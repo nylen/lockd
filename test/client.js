@@ -385,13 +385,16 @@ describe('LockdClient', function() {
     if (registryDisabled || dumpDisabled) {
         it('forbids listing client names', function(done) {
             testSequence(
-                [client1, 'listClients', null, 'The registry feature of the lockd server is disabled.'],
-                [client1, 'listClients', 'c1', 'The registry feature of the lockd server is disabled.'],
+                [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
+                [client1, 'listClients', 'c1', 'The dump and/or registry features of the lockd server are disabled.'],
                 done);
         });
     }
 
     it('allows getting connection stats', function(done) {
+        // TODO this test also covers a few other miscellaneous things that
+        // should probably be broken out separately: 'dump\n', 'dump shared\n',
+        // and sending invalid commands.
         var statsChangesExpected = {
                 command_d        : 2,
                 command_dump     : 2,
@@ -526,13 +529,19 @@ describe('LockdClient', function() {
                     testSequence(
                         [client1, 'getName'    , null, 'Expected 1 line but got 0'],
                         [client1, 'setName'    , 'c1', 'Expected 1 line but got 0'],
+                        // TODO should be:
+                        // [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
                         [client1, 'listClients', null, null, {}],
                         next);
                 } else {
                     testSequence(
                         [client1, 'getName'    , null, null, address(client1), address(client1)],
                         [client1, 'setName'    , 'c1', null, 1, 'ok'],
-                        [client1, 'listClients', null, null, { 'c1' : address(client1) }],
+
+                        (dumpDisabled
+                            ? [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.']
+                            : [client1, 'listClients', null, null, { 'c1' : address(client1) }]),
+
                         next);
                 }
             },
