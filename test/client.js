@@ -387,6 +387,21 @@ describe('LockdClient', function() {
                     done);
             });
         });
+
+        // TODO don't allow this
+        it('allows multiple clients to have the same name', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client2, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), 'c1'],
+                    done);
+            });
+        });
     }
 
     if (!registryDisabled && dumpDisabled) {
@@ -440,6 +455,25 @@ describe('LockdClient', function() {
                     [client2, 'setName', 'c2', null, 1, 'ok'],
                     [client2, 'listClients', 'c1', null, address(client1)],
                     [client3, 'listClients', null, null, { 'c1' : address(client1), 'c2' : address(client2) }],
+                    done);
+            });
+        });
+
+        // TODO don't allow this
+        it('allows multiple clients to have the same name', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client2, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client2, 'getName', null, null, address(client2), 'c1'],
+                    // It looks like the last client to request a name will
+                    // have it, as far as 'who\n' / listClients() is concerned.
+                    [client2, 'listClients', 'c1', null, address(client2)],
+                    [client3, 'listClients', null, null, { 'c1' : address(client2) }],
                     done);
             });
         });
