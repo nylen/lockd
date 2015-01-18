@@ -77,6 +77,17 @@ LockdServer.prototype._isLockdServer = true;
 LockdServer.prototype.receive = function(client, line, reply) {
     var self = this;
 
+    if (line === '') {
+        // When a client disconnects, we get a blank line because their data
+        // stream ends, and the last character they sent should be '\n'.
+        // There's never a situation where we need to do anything with a blank
+        // line, so just drop them.
+        //
+        // TODO This issue was caught by an extra invalid_command in the stats
+        // test, but it might not be a bad idea to have a better test for this.
+        return;
+    }
+
     var arr = utils.splitAtFirstSpace(line),
         cmd = arr[0],
         arg = arr[1] || '',
