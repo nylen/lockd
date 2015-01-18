@@ -214,6 +214,18 @@ describe('LockdClient', function() {
             done);
     });
 
+    it('allows getting, inspecting, and releasing the empty lock', function(done) {
+        testSequence(
+            [client1, 'get'    , '', null, 1, 'Lock Get Success: '],
+            [client1, 'inspect', '', null, 1, 'Lock Is Locked: '],
+            [client2, 'inspect', '', null, 1, 'Lock Is Locked: '],
+            [client2, 'release', '', 'Lock Release Failure: '],
+            [client1, 'release', '', null, 1, 'Lock Release Success: '],
+            [client1, 'inspect', '', null, 0, 'Lock Not Locked: '],
+            [client2, 'inspect', '', null, 0, 'Lock Not Locked: '],
+            done);
+    });
+
     it('allows inspecting, getting, and releasing shared locks', function(done) {
         testSequence(
             [client1, 'inspectShared', 'asdf', null, 0, 'Shared Lock Not Locked: asdf'],
@@ -229,6 +241,24 @@ describe('LockdClient', function() {
             [client3, 'inspectShared', 'asdf', null, 1, 'Shared Lock Is Locked: asdf'],
             [client3, 'releaseShared', 'asdf', null, 1, 'Shared Lock Release Success: asdf'],
             [client3, 'inspectShared', 'asdf', null, 0, 'Shared Lock Not Locked: asdf'],
+            done);
+    });
+
+    it('allows inspecting, getting, and setting the empty shared lock', function(done) {
+        testSequence(
+            [client1, 'inspectShared', '', null, 0, 'Shared Lock Not Locked: '],
+            [client1, 'getShared'    , '', null, 1, 'Shared Lock Get Success: '],
+            [client1, 'getShared'    , '', null, 1, 'Shared Lock Get Success: '],
+            [client2, 'getShared'    , '', null, 2, 'Shared Lock Get Success: '],
+            [client1, 'getShared'    , '', null, 2, 'Shared Lock Get Success: '],
+            [client3, 'getShared'    , '', null, 3, 'Shared Lock Get Success: '],
+            [client3, 'inspectShared', '', null, 3, 'Shared Lock Is Locked: '],
+            [client2, 'releaseShared', '', null, 1, 'Shared Lock Release Success: '],
+            [client2, 'releaseShared', '', 'Shared Lock Release Failure: '],
+            [client1, 'releaseShared', '', null, 1, 'Shared Lock Release Success: '],
+            [client3, 'inspectShared', '', null, 1, 'Shared Lock Is Locked: '],
+            [client3, 'releaseShared', '', null, 1, 'Shared Lock Release Success: '],
+            [client3, 'inspectShared', '', null, 0, 'Shared Lock Not Locked: '],
             done);
     });
 
@@ -273,6 +303,10 @@ describe('LockdClient', function() {
                     [client2, 'get' , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
                     [client1, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
                     [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    // TODO it's currently not possible to dump only the empty lock
+                    [client2, 'dump', ''     , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client2, 'get' , ''     , null, 1, 'Lock Get Success: '],
+                    [client2, 'dump', ''     , null, { 'asdf1' : address(client1), 'asdf2' : address(client2), '' : address(client2) }],
                     [client1, 'dump', 'asdf2', null, address(client2)],
                     [client1, 'dump', 'asdf3', null, null],
                     done);
@@ -287,6 +321,10 @@ describe('LockdClient', function() {
                     [client2, 'getShared' , 'asdf2', null, 2, 'Shared Lock Get Success: asdf2'],
                     [client1, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
                     [client2, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    // TODO it's currently not possible to dump only the empty lock
+                    [client2, 'dumpShared', ''     , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client2, 'getShared' , ''     , null, 1, 'Shared Lock Get Success: '],
+                    [client2, 'dumpShared', ''     , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)], '' : [address(client2)] }],
                     [client1, 'dumpShared', 'asdf2', null, [address(client1), address(client2)]],
                     [client1, 'dumpShared', 'asdf3', null, []],
                     done);
