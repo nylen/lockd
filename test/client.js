@@ -427,6 +427,7 @@ describe('LockdClient', function() {
             function(next) {
                 client1.getStats(function(err, stats) {
                     must(err).not.exist();
+                    Object.keys(stats).must.eql(Object.keys(stats).sort());
                     stats.command_iam = stats.command_iam || 0;
                     stats.command_me  = stats.command_me  || 0;
                     stats.command_who = stats.command_who || 0;
@@ -549,6 +550,7 @@ describe('LockdClient', function() {
             function(next) {
                 client2.getStats(function(err, stats) {
                     must(err).not.exist();
+                    Object.keys(stats).must.eql(Object.keys(stats).sort());
                     // Bug in glockd: if launched with -registry=false then
                     // command_iam will never be set
                     stats.command_iam = stats.command_iam || 0;
