@@ -18,7 +18,14 @@ var program = require('yargs')
         describe : 'Forbid clients from assigning themselves friendly names.',
         type     : 'boolean'
     })
-    .addHelpOpt('help');
+    .addHelpOpt('h').alias('h', 'help');
+
+function usage() {
+    console.error.apply(null, arguments);
+    console.error();
+    program.showHelp();
+    process.exit(1);
+}
 
 var argv = program.argv;
 
@@ -43,8 +50,9 @@ serverOpts.features = {
 var server = lockd.listen(serverOpts);
 
 server.on('error', function(err) {
-    console.error('Error starting lockd server: ' + err.message);
-    console.error();
-    program.showHelp();
-    process.exit(1);
+    delete serverOpts.features;
+    usage(
+        'Error starting lockd server on %s: %s',
+        JSON.stringify(serverOpts),
+        err.message);
 });
