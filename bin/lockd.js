@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-var lockd = require('../index');
+var fs    = require('fs'),
+    lockd = require('../index');
 
 var program = require('yargs')
     .usage('Usage: $0 options')
@@ -17,6 +18,11 @@ var program = require('yargs')
     .option('disable-registry', {
         describe : 'Forbid clients from assigning themselves friendly names.',
         type     : 'boolean'
+    })
+    .option('p', {
+        alias    : 'pid-file',
+        describe : 'PID file (will contain two lines: PID and server port.',
+        type     : 'string'
     })
     .addHelpOpt('h').alias('h', 'help');
 
@@ -40,6 +46,14 @@ if (argv.tcp) {
 if (!Object.keys(serverOpts).length) {
     // No listening options specified, use tcp 9999
     serverOpts.tcp = '9999';
+}
+
+if (argv.pidFile) {
+    try {
+        fs.writeFileSync(argv.pidFile, process.pid);
+    } catch (err) {
+        usage('Error writing to PID file: ' + err.message);
+    }
 }
 
 serverOpts.features = {
