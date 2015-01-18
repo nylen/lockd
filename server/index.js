@@ -29,7 +29,7 @@ function LockdServer(options) {
                     self.disconnect(client);
                 });
         });
-        server.listen(listenOn.port);
+        server.listen(listenOn.port, listenOn.host);
         server.on('error', function() {
             self.emit.apply(self, ['error'].concat([].slice.call(arguments)));
         });
