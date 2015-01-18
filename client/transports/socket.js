@@ -25,6 +25,15 @@ function SocketTransport(options) {
     // Listen for lines arriving from the server and process them in order
     self.socket.pipe(split())
         .on('data', function(line) {
+            if (line === '') {
+                // We've discussed a future server/protocol enhancement to use
+                // blank lines to terminate responses.  This would be really
+                // useful for responses that return variable numbers of lines:
+                // it would allow us to return before the read timeout elapses.
+                // For forward compatibility with future server versions, then,
+                // ignore all blank lines coming from the server.
+                return;
+            }
             var reader = self.reader;
             if (!reader) {
                 self.emit('error', new Error(
