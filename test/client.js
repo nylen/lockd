@@ -374,6 +374,19 @@ describe('LockdClient', function() {
                     done);
             });
         });
+
+        it('allows resetting the connection name to the default', function(done) {
+            waitForConnections(function() {
+                testSequence(
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'setName', 'c1', null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client1, 'setName', ''  , null, 1, 'ok'],
+                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    done);
+            });
+        });
     }
 
     if (!registryDisabled && dumpDisabled) {

@@ -223,7 +223,10 @@ always equal `addr`.
 ### setName(name, cb)
 
 Sets the name of the current client.  The callback `cb` is called with
-with parameters (`err`, `ok`, `msg`).
+parameters (`err`, `ok`, `msg`).
+
+To reset the name of the current client to the default (its `address:port`),
+pass `''` as the `name` parameter.
 
 If the registry feature is disabled on the `lockd` server, then `err` will be
 set accordingly.
