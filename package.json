@@ -1,44 +1,44 @@
 {
-    "name"        : "lockd",
-    "author"      : "James Nylen <jnylen@gmail.com>",
-    "description" : "A network lock service and client library.",
-    "version"     : "0.0.0",
-    "repository"  : {
-        "type" : "git",
-        "url"  : "https://github.com/nylen/lockd"
-    },
-    "bugs" : {
-        "url" : "https://github.com/nylen/lockd/issues"
-    },
-    "license"  : "GPL-2.0",
-    "keywords" : [
-        "network",
-        "exclusive",
-        "shared",
-        "lock",
-        "locking",
-        "manager",
-        "service"
-    ],
-    "engines" : {
-        "node" : ">=0.10"
-    },
-    "scripts" : {
-        "test" : "node node_modules/.bin/mocha"
-    },
-    "main" : "index.js",
-    "bin"  : {
-        "lockd" : "bin/lockd.js"
-    },
-    "dependencies" : {
-        "async"          : "~0.9.0",
-        "server-destroy" : "~1.0.0",
-        "split"          : "~0.3.2",
-        "ws"             : "~0.6.3",
-        "yargs"          : "~1.3.3"
-    },
-    "devDependencies" : {
-        "mocha" : "~2.1.0",
-        "must"  : "~0.12.0"
-    }
+  "name": "lockd",
+  "author": "James Nylen <jnylen@gmail.com>",
+  "description": "A network lock service and client library.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nylen/lockd"
+  },
+  "bugs": {
+    "url": "https://github.com/nylen/lockd/issues"
+  },
+  "license": "GPL-2.0",
+  "keywords": [
+    "network",
+    "exclusive",
+    "shared",
+    "lock",
+    "locking",
+    "manager",
+    "service"
+  ],
+  "engines": {
+    "node": ">=0.10"
+  },
+  "scripts": {
+    "test": "node node_modules/.bin/mocha"
+  },
+  "main": "index.js",
+  "bin": {
+    "lockd": "bin/lockd.js"
+  },
+  "dependencies": {
+    "async": "~0.9.0",
+    "server-destroy": "~1.0.0",
+    "split": "~0.3.2",
+    "ws": "~0.6.3",
+    "yargs": "~1.3.3"
+  },
+  "devDependencies": {
+    "mocha": "~2.1.0",
+    "must": "~0.12.0"
+  }
 }
