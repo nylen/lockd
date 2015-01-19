@@ -1,8 +1,10 @@
-var events = require('events'),
-    net    = require('net'),
-    split  = require('split'),
-    util   = require('util'),
-    utils  = require('../lib/utils');
+var async       = require('async'),
+    events      = require('events'),
+    net         = require('net'),
+    destroyable = require('server-destroy'),
+    split       = require('split'),
+    util        = require('util'),
+    utils       = require('../lib/utils');
 
 function LockdServer(options) {
     if (!(this instanceof LockdServer)) {
@@ -36,6 +38,7 @@ function LockdServer(options) {
         server.on('error', function() {
             self.emit.apply(self, ['error'].concat([].slice.call(arguments)));
         });
+        destroyable(server);
         self.transports.push(server);
     }
 
@@ -391,6 +394,18 @@ LockdServer.prototype.disconnect = function(client) {
 
     delete self.registry[client];
     self.stats.connections--;
+};
+
+LockdServer.prototype.close = function(cb) {
+    async.map(this.transports, function(transport, next) {
+        transport.close(next);
+    }, cb);
+};
+
+LockdServer.prototype.destroy = function(cb) {
+    async.map(this.transports, function(transport, next) {
+        transport.destroy(next);
+    }, cb);
 };
 
 LockdServer.prototype.clientName = function(client) {

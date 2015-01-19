@@ -97,6 +97,10 @@ var server = lockd.listen({
 });
 ```
 
+When you're done with the server, call `server.close()` (will wait for all
+clients to disconnect) or `server.destroy()` (will forcibly disconnect all
+clients).
+
 **TODO**: support listening on a websocket path given an existing server
 instance, see
 https://github.com/einaros/ws/blob/v0.4.30/test/WebSocketServer.test.js#L121
