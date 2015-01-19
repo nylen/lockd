@@ -29,7 +29,10 @@ function LockdServer(options) {
                     self.disconnect(client);
                 });
         });
-        server.listen(listenOn.port, listenOn.host);
+        server.listen(listenOn.port, listenOn.host, function() {
+            // TODO this won't work if multiple transports are supported
+            self.emit('ready');
+        });
         server.on('error', function() {
             self.emit.apply(self, ['error'].concat([].slice.call(arguments)));
         });

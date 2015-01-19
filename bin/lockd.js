@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 var fs    = require('fs'),
-    lockd = require('../index');
+    lockd = require('../index'),
+    util  = require('util');
 
 var program = require('yargs')
     .usage('Usage: $0 options')
@@ -56,15 +57,18 @@ if (argv.pidFile) {
     }
 }
 
-serverOpts.features = {
-    dump     : !argv.disableDump,
-    registry : !argv.disableRegistry
-};
+var server = lockd.listen(util._extend({
+    features : {
+        dump     : !argv.disableDump,
+        registry : !argv.disableRegistry
+    }
+}, serverOpts));
 
-var server = lockd.listen(serverOpts);
+server.on('ready', function() {
+    console.log('Listening on ' + JSON.stringify(serverOpts));
+});
 
 server.on('error', function(err) {
-    delete serverOpts.features;
     usage(
         'Error starting lockd server on %s: %s',
         JSON.stringify(serverOpts),
