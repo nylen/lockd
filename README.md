@@ -3,8 +3,6 @@
 A network lock service and client library.  Port of
 [apokalyptik/glockd](https://github.com/apokalyptik/glockd) to Node.js.
 
-**WORK IN PROGRESS** - not ready for use yet.
-
 ## Lock Types
 
 ### Exclusive Locks
@@ -54,17 +52,12 @@ npm install lockd
 var lockd = require('lockd');
 
 var client = lockd.connect({
-    // Choose one of the following connection methods:
-    tcp       : 'host:port',
-    unix      : '/path/to/unix.socket',
-    websocket : 'ws://host:port',
+    tcp : 'host:port',
     // Extra options, if needed:
     timeout     : /* connection timeout in ms */
     readTimeout : /* socket read timeout in ms */
 });
 ```
-
-**TODO**: document that you can pass a `LockdServer` instance instead
 
 ### Server Installation
 
@@ -76,9 +69,7 @@ lockd --help
 ```
 
 When running the server from the command line, it will listen on TCP/IP port
-9999 by default.  If any other connection methods are specified then this
-default will not be used.
-
+9999 by default.
 
 To start a `lockd` server as part of a Node.js program:
 
@@ -90,20 +81,18 @@ npm install lockd
 var lockd = require('lockd');
 
 var server = lockd.listen({
-    // Choose one or more of the following connection methods:
-    tcp       : 'host:port',
-    unix      : '/path/to/unix.socket',
-    websocket : 'ws://host:port'
+    tcp      : 'host:port',
+    features : {
+        // Enable or disable features (default enabled)
+        dump     : true/false,
+        registry : true/false
+    }
 });
 ```
 
 When you're done with the server, call `server.close()` (will wait for all
 clients to disconnect) or `server.destroy()` (will forcibly disconnect all
 clients).
-
-**TODO**: support listening on a websocket path given an existing server
-instance, see
-https://github.com/einaros/ws/blob/v0.4.30/test/WebSocketServer.test.js#L121
 
 ## Client Documentation
 
@@ -274,5 +263,5 @@ locks held by the client to be released.
 
 ## Protocol Documentation
 
-`lockd` uses a simple line-based protocol available over several different
-transports.  See [docs/protocol.md](docs/protocol.md) for more information.
+`lockd` uses a simple line-based protocol over TCP sockets.  See
+[docs/protocol.md](docs/protocol.md) for more information.

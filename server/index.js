@@ -40,6 +40,8 @@ function LockdServer(options) {
         });
         destroyable(server);
         self.transports.push(server);
+    } else {
+        throw new Error('No connection methods given.');
     }
 
     self.features = {

@@ -16,11 +16,7 @@ function LockdClient(options) {
 
     var self = this;
 
-    if (options._isLockdServer === true) {
-        // This is an instance of LockdServer running in the same process.
-        self.transport = new transports.memory(options);
-
-    } else if (options.tcp) {
+    if (options.tcp) {
         // Connect to a lockd server listening on the TCP socket [host:]port
         // specified by options.socket
         var connectTo = utils.parseHostPort(options.tcp);
@@ -31,23 +27,6 @@ function LockdClient(options) {
             connectTo.readTimeout = options.readTimeout;
         }
         self.transport = new transports.socket(connectTo);
-
-    } else if (options.unix) {
-        // Connect to a lockd server listening on the Unix socket filename
-        // specified by options.unix
-        var connectTo = { path : options.unix };
-        if (options.timeout) {
-            connectTo.timeout = options.timeout;
-        }
-        if (options.readTimeout) {
-            connectTo.readTimeout = options.readTimeout;
-        }
-        self.transport = new transports.socket(connectTo);
-
-    } else if (options.websocket) {
-        // Connect to a lockd server listening on the websocket
-        // ws://host[:port][/path] specified by options.websocket
-        self.transport = new transports.websocket(options);
 
     } else {
         throw new Error('No valid lockd connection method given.');

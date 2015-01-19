@@ -1,13 +1,11 @@
 # lockd Protocol Documentation
 
-`lockd` uses a simple line-based protocol available over several different
-transports:
+`lockd` uses a simple line-based protocol over TCP.
 
 ## Connection Methods
 
 When running the server from the command line, it will listen on TCP/IP port
-9999 by default.  If any other connection methods are specified then this
-default will not be used.
+9999 by default unless another port is specified.
 
 ### TCP/IP
 
@@ -20,31 +18,6 @@ immediately upon connecting.
 Client Implementations:
 
 - PHP: http://code.svn.wordpress.org/lockd/lockd-client.php
-
-### Websockets
-
-If websockets are enabled then you may simply connect to the server as you
-normally would on `ws://host:port/`.  The API works the same way for websockets
-as for TCP/IP sockets.
-
-### Unix Sockets
-
-If a path to a local unix socket has been specified (via the `--unix`
-parameter) then you may connect to it as you would any `AF_UNIX` socket in
-your programming language (example below.)  You may then read/write commands as
-you would a TCP/IP socket connection.  This obviously only works when
-connecting to `lockd` from the same machine since a shared filesystem which
-supports unix sockets is required.
-
-Example connecting to `lockd` via a unix socket in Python:
-
-```python
-import socket
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-s.connect("/var/run/lockd/socket")
-s.sendall("g foo\n")
-print s.recv(4096)
-```
 
 ## Exclusive Locks API
 
