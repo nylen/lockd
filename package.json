@@ -20,6 +20,9 @@
         "manager",
         "service"
     ],
+    "engines" : {
+        "node" : ">=0.10"
+    },
     "scripts" : {
         "test" : "node node_modules/.bin/mocha"
     },
