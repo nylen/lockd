@@ -59,48 +59,6 @@ describe('LockdClient', function() {
         client3.on('connect', check);
     }
 
-    function testSequence() {
-        var steps   = [].slice.call(arguments, 0, -1),
-            done    = arguments[arguments.length - 1],
-            asyncFn = async.each;
-
-        // If all steps in this sequence involve the same client, then we can
-        // launch them all in parallel as a test of the client library's
-        // queuing/serialization functionality.
-        for (var i = 0; i < steps.length - 1; i++) {
-            if (steps[i][0] !== steps[i + 1][0]) {
-                asyncFn = async.eachSeries;
-                break;
-            }
-        }
-
-        // To make it easier to see which step in a sequence is failing, store
-        // the index of each step.
-        for (var i = 0; i < steps.length; i++) {
-            steps[i].push(i);
-        }
-
-        asyncFn(steps, function(step, nextStep) {
-            var obj      = step[0],
-                fn       = step[1],
-                args     = (step[2] === null ? [] : [step[2]]),
-                expected = step.slice(3, -1),
-                index    = 'element ' + step[step.length - 1];
-            obj[fn].apply(obj, args.concat(function() {
-                var results = [].slice.call(arguments);
-                for (var i = 0; i < results.length; i++) {
-                    if (results[i] instanceof Error) {
-                        results[i] = results[i].message;
-                    }
-                }
-                [index].concat(results).must.eql([index].concat(expected));
-                nextStep();
-            }));
-        }, function() {
-            done();
-        });
-    }
-
     it('queues requests and gets exclusive locks', function(done) {
         var client    = newClient(),
             connected = false;
@@ -134,34 +92,34 @@ describe('LockdClient', function() {
     });
 
     it('allows other clients to acquire orphaned locks', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'get', 'asdf', null, 1, 'Lock Get Success: asdf'],
             done);
     });
 
     it('allows a client to get multiple locks', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'get', 'asdf' , null, 1, 'Lock Get Success: asdf'],
             [client1, 'get', 'asdf2', null, 1, 'Lock Get Success: asdf2'],
             done);
     });
 
     it('allows a client to get a lock it already holds', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'get', 'asdf', null, 1, 'Lock Get Success: asdf'],
             [client1, 'get', 'asdf', null, 1, 'Lock Get Success: asdf'],
             done);
     });
 
     it('forbids a client to get a lock another client already holds', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'get', 'asdf', null, 1, 'Lock Get Success: asdf'],
             [client2, 'get', 'asdf', 'Lock Get Failure: asdf'],
             done);
     });
 
     it('serializes concurrent requests from a single client', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'inspect', 'asdf1', null, 0, 'Lock Not Locked: asdf1'],
             [client1, 'inspect', 'asdf2', null, 0, 'Lock Not Locked: asdf2'],
             [client1, 'inspect', 'asdf3', null, 0, 'Lock Not Locked: asdf3'],
@@ -188,7 +146,7 @@ describe('LockdClient', function() {
     });
 
     it('allows inspecting and releasing locks with multiple clients', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'get'    , 'asdf', null, 1, 'Lock Get Success: asdf'],
             [client1, 'inspect', 'asdf', null, 1, 'Lock Is Locked: asdf'],
             [client2, 'inspect', 'asdf', null, 1, 'Lock Is Locked: asdf'],
@@ -200,7 +158,7 @@ describe('LockdClient', function() {
     });
 
     it('allows getting, inspecting, and releasing the empty lock', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'get'    , '', null, 1, 'Lock Get Success: '],
             [client1, 'inspect', '', null, 1, 'Lock Is Locked: '],
             [client2, 'inspect', '', null, 1, 'Lock Is Locked: '],
@@ -212,7 +170,7 @@ describe('LockdClient', function() {
     });
 
     it('allows inspecting, getting, and releasing shared locks', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'inspectShared', 'asdf', null, 0, 'Shared Lock Not Locked: asdf'],
             [client1, 'getShared'    , 'asdf', null, 1, 'Shared Lock Get Success: asdf'],
             [client1, 'getShared'    , 'asdf', null, 1, 'Shared Lock Get Success: asdf'],
@@ -230,7 +188,7 @@ describe('LockdClient', function() {
     });
 
     it('allows inspecting, getting, and setting the empty shared lock', function(done) {
-        testSequence(
+        lib.testSequence(
             [client1, 'inspectShared', '', null, 0, 'Shared Lock Not Locked: '],
             [client1, 'getShared'    , '', null, 1, 'Shared Lock Get Success: '],
             [client1, 'getShared'    , '', null, 1, 'Shared Lock Get Success: '],
@@ -250,7 +208,7 @@ describe('LockdClient', function() {
     if (dumpDisabled) {
         it('forbids dumping exclusive locks', function(done) {
             var start = +new Date;
-            testSequence(
+            lib.testSequence(
                 [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
                 [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
                 [client2, 'dump', 'asdf1', 'The dump feature of the lockd server is disabled.'],
@@ -266,7 +224,7 @@ describe('LockdClient', function() {
 
         it('forbids dumping shared locks', function(done) {
             var start = +new Date;
-            testSequence(
+            lib.testSequence(
                 [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
                 [client1, 'dumpShared', null   , 'The dump feature of the lockd server is disabled.'],
                 [client2, 'dumpShared', 'asdf1', 'The dump feature of the lockd server is disabled.'],
@@ -283,7 +241,7 @@ describe('LockdClient', function() {
             // Need to wait for clients to connect so that we can get their socket
             // addresses.
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
                     [client2, 'get' , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
                     [client1, 'dump', null   , null, {
@@ -312,14 +270,14 @@ describe('LockdClient', function() {
         });
 
         it('returns null when dumping an exclusive lock nobody is holding', function(done) {
-            testSequence(
+            lib.testSequence(
                 [client1, 'dump', 'empty', null, null],
                 done);
         });
 
         it('allows dumping shared locks', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
                     [client1, 'getShared' , 'asdf2', null, 1, 'Shared Lock Get Success: asdf2'],
                     [client2, 'getShared' , 'asdf2', null, 2, 'Shared Lock Get Success: asdf2'],
@@ -349,7 +307,7 @@ describe('LockdClient', function() {
         });
 
         it('returns [] when dumping a shared lock nobody is holding', function(done) {
-            testSequence(
+            lib.testSequence(
                 [client1, 'dumpShared', 'empty', null, []],
                 done);
         });
@@ -358,7 +316,7 @@ describe('LockdClient', function() {
     if (registryDisabled) {
         it('allows getting but not setting connection names', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', 'The registry feature of the lockd server is disabled.'],
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
@@ -370,7 +328,7 @@ describe('LockdClient', function() {
     if (!registryDisabled) {
         it('allows getting and setting connection names', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -381,7 +339,7 @@ describe('LockdClient', function() {
 
         it('allows resetting the connection name to the default', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -395,7 +353,7 @@ describe('LockdClient', function() {
         // TODO don't allow this
         it('allows multiple clients to have the same name', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -411,7 +369,7 @@ describe('LockdClient', function() {
     if (!registryDisabled && dumpDisabled) {
         it('forbids viewing the names of other clients', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -426,7 +384,7 @@ describe('LockdClient', function() {
     if (!registryDisabled && !dumpDisabled) {
         it('uses client names in dump output', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -440,7 +398,7 @@ describe('LockdClient', function() {
 
         it('uses client names in dumpShared output', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -454,7 +412,7 @@ describe('LockdClient', function() {
 
         it('allows listing client names', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client2, 'setName', 'c2', null, 1, 'ok'],
                     [client2, 'listClients', 'c1', null, lib.address(client1)],
@@ -469,7 +427,7 @@ describe('LockdClient', function() {
         // TODO don't allow this
         it('allows multiple clients to have the same name', function(done) {
             waitForConnections(function() {
-                testSequence(
+                lib.testSequence(
                     [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client1, 'getName', null, null, lib.address(client1), 'c1'],
@@ -490,7 +448,7 @@ describe('LockdClient', function() {
 
     if (registryDisabled || dumpDisabled) {
         it('forbids listing client names', function(done) {
-            testSequence(
+            lib.testSequence(
                 [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
                 [client1, 'listClients', 'c1', 'The dump and/or registry features of the lockd server are disabled.'],
                 done);
@@ -550,7 +508,7 @@ describe('LockdClient', function() {
             },
 
             function(next) {
-                testSequence(
+                lib.testSequence(
                     [client1, 'inspect', 'asdf1', null, 0, 'Lock Not Locked: asdf1'],
                     [client1, 'inspect', 'asdf2', null, 0, 'Lock Not Locked: asdf2'],
                     [client1, 'inspect', 'asdf3', null, 0, 'Lock Not Locked: asdf3'],
@@ -631,13 +589,13 @@ describe('LockdClient', function() {
 
             function(next) {
                 if (registryDisabled) {
-                    testSequence(
+                    lib.testSequence(
                         [client1, 'getName'    , null, null, lib.address(client1), lib.address(client1)],
                         [client1, 'setName'    , 'c1', 'The registry feature of the lockd server is disabled.'],
                         [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
                         next);
                 } else {
-                    testSequence(
+                    lib.testSequence(
                         [client1, 'getName'    , null, null, lib.address(client1), lib.address(client1)],
                         [client1, 'setName'    , 'c1', null, 1, 'ok'],
 
@@ -687,7 +645,7 @@ describe('LockdClient', function() {
             });
         }).listen(6767, function() {
             var client = lockd.connect({ tcp : 'localhost:6767' });
-            testSequence(
+            lib.testSequence(
                 [client, 'get'          , 'asdf', 'Expected 1 line but got 0'],
                 [client, 'inspect'      , 'asdf', 'Expected 1 line but got 0'],
                 [client, 'release'      , 'asdf', 'Expected 1 line but got 0'],
@@ -770,7 +728,7 @@ describe('LockdClient', function() {
         }).listen(6767, function() {
             var client = lockd.connect({ tcp : 'localhost:6767' });
             client.on('connect', function() {
-                testSequence(
+                lib.testSequence(
                     [client, 'get'          , 'asdf', null, 1, 'Lock Get Success: asdf'],
                     [client, 'inspect'      , 'asdf', null, 1, 'Lock Is Locked: asdf'],
                     [client, 'release'      , 'asdf', null, 1, 'Lock Release Success: asdf'],
