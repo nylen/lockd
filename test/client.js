@@ -1,6 +1,7 @@
 var async  = require('async'),
     domain = require('domain'),
     lockd  = require('../index'),
+    lib    = require('./lib'),
     mocha  = require('mocha'),
     must   = require('must'),
     net    = require('net'),
@@ -44,11 +45,6 @@ describe('LockdClient', function() {
             setClients();
         }
     });
-
-    function address(client) {
-        var addr = client.transport.socket.address();
-        return addr.address + ':' + addr.port;
-    }
 
     function waitForConnections(cb) {
         var calls = 0;
@@ -290,13 +286,26 @@ describe('LockdClient', function() {
                 testSequence(
                     [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
                     [client2, 'get' , 'asdf2', null, 1, 'Lock Get Success: asdf2'],
-                    [client1, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
-                    [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client1, 'dump', null   , null, {
+                        'asdf1' : lib.address(client1),
+                        'asdf2' : lib.address(client2)
+                    }],
+                    [client2, 'dump', null   , null, {
+                        'asdf1' : lib.address(client1),
+                        'asdf2' : lib.address(client2)
+                    }],
                     // TODO it's currently not possible to dump only the empty lock
-                    [client2, 'dump', ''     , null, { 'asdf1' : address(client1), 'asdf2' : address(client2) }],
+                    [client2, 'dump', ''     , null, {
+                        'asdf1' : lib.address(client1),
+                        'asdf2' : lib.address(client2)
+                    }],
                     [client2, 'get' , ''     , null, 1, 'Lock Get Success: '],
-                    [client2, 'dump', ''     , null, { 'asdf1' : address(client1), 'asdf2' : address(client2), '' : address(client2) }],
-                    [client1, 'dump', 'asdf2', null, address(client2)],
+                    [client2, 'dump', ''     , null, {
+                        'asdf1' : lib.address(client1),
+                        'asdf2' : lib.address(client2),
+                        '' : lib.address(client2)
+                    }],
+                    [client1, 'dump', 'asdf2', null, lib.address(client2)],
                     [client1, 'dump', 'asdf3', null, null],
                     done);
             });
@@ -314,13 +323,26 @@ describe('LockdClient', function() {
                     [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
                     [client1, 'getShared' , 'asdf2', null, 1, 'Shared Lock Get Success: asdf2'],
                     [client2, 'getShared' , 'asdf2', null, 2, 'Shared Lock Get Success: asdf2'],
-                    [client1, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
-                    [client2, 'dumpShared', null   , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client1, 'dumpShared', null   , null, {
+                        'asdf1' : [lib.address(client1)],
+                        'asdf2' : [lib.address(client1), lib.address(client2)]
+                    }],
+                    [client2, 'dumpShared', null   , null, {
+                        'asdf1' : [lib.address(client1)],
+                        'asdf2' : [lib.address(client1), lib.address(client2)]
+                    }],
                     // TODO it's currently not possible to dump only the empty lock
-                    [client2, 'dumpShared', ''     , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)] }],
+                    [client2, 'dumpShared', ''     , null, {
+                        'asdf1' : [lib.address(client1)],
+                        'asdf2' : [lib.address(client1), lib.address(client2)]
+                    }],
                     [client2, 'getShared' , ''     , null, 1, 'Shared Lock Get Success: '],
-                    [client2, 'dumpShared', ''     , null, { 'asdf1' : [address(client1)], 'asdf2' : [address(client1), address(client2)], '' : [address(client2)] }],
-                    [client1, 'dumpShared', 'asdf2', null, [address(client1), address(client2)]],
+                    [client2, 'dumpShared', ''     , null, {
+                        'asdf1' : [lib.address(client1)],
+                        'asdf2' : [lib.address(client1), lib.address(client2)],
+                        '' : [lib.address(client2)]
+                    }],
+                    [client1, 'dumpShared', 'asdf2', null, [lib.address(client1), lib.address(client2)]],
                     [client1, 'dumpShared', 'asdf3', null, []],
                     done);
             });
@@ -337,9 +359,9 @@ describe('LockdClient', function() {
         it('allows getting but not setting connection names', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', 'The registry feature of the lockd server is disabled.'],
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     done);
             });
         });
@@ -349,10 +371,10 @@ describe('LockdClient', function() {
         it('allows getting and setting connection names', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     done);
             });
         });
@@ -360,12 +382,12 @@ describe('LockdClient', function() {
         it('allows resetting the connection name to the default', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
                     [client1, 'setName', ''  , null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), address(client1)],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     done);
             });
         });
@@ -374,13 +396,13 @@ describe('LockdClient', function() {
         it('allows multiple clients to have the same name', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     [client2, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), 'c1'],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), 'c1'],
                     done);
             });
         });
@@ -390,10 +412,10 @@ describe('LockdClient', function() {
         it('forbids viewing the names of other clients', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
                     [client1, 'dump', null   , 'The dump feature of the lockd server is disabled.'],
                     done);
@@ -405,10 +427,10 @@ describe('LockdClient', function() {
         it('uses client names in dump output', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     [client1, 'get' , 'asdf1', null, 1, 'Lock Get Success: asdf1'],
                     [client1, 'dump', null   , null, { 'asdf1' : 'c1' }],
                     [client2, 'dump', null   , null, { 'asdf1' : 'c1' }],
@@ -419,10 +441,10 @@ describe('LockdClient', function() {
         it('uses client names in dumpShared output', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     [client1, 'getShared' , 'asdf1', null, 1, 'Shared Lock Get Success: asdf1'],
                     [client1, 'dumpShared', null   , null, { 'asdf1' : ['c1'] }],
                     [client2, 'dumpShared', null   , null, { 'asdf1' : ['c1'] }],
@@ -435,8 +457,11 @@ describe('LockdClient', function() {
                 testSequence(
                     [client1, 'setName', 'c1', null, 1, 'ok'],
                     [client2, 'setName', 'c2', null, 1, 'ok'],
-                    [client2, 'listClients', 'c1', null, address(client1)],
-                    [client3, 'listClients', null, null, { 'c1' : address(client1), 'c2' : address(client2) }],
+                    [client2, 'listClients', 'c1', null, lib.address(client1)],
+                    [client3, 'listClients', null, null, {
+                        'c1' : lib.address(client1),
+                        'c2' : lib.address(client2)
+                    }],
                     done);
             });
         });
@@ -445,17 +470,19 @@ describe('LockdClient', function() {
         it('allows multiple clients to have the same name', function(done) {
             waitForConnections(function() {
                 testSequence(
-                    [client1, 'getName', null, null, address(client1), address(client1)],
+                    [client1, 'getName', null, null, lib.address(client1), lib.address(client1)],
                     [client1, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), address(client2)],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), lib.address(client2)],
                     [client2, 'setName', 'c1', null, 1, 'ok'],
-                    [client1, 'getName', null, null, address(client1), 'c1'],
-                    [client2, 'getName', null, null, address(client2), 'c1'],
+                    [client1, 'getName', null, null, lib.address(client1), 'c1'],
+                    [client2, 'getName', null, null, lib.address(client2), 'c1'],
                     // It looks like the last client to request a name will
                     // have it, as far as 'who\n' / listClients() is concerned.
-                    [client2, 'listClients', 'c1', null, address(client2)],
-                    [client3, 'listClients', null, null, { 'c1' : address(client2) }],
+                    [client2, 'listClients', 'c1', null, lib.address(client2)],
+                    [client3, 'listClients', null, null, {
+                        'c1' : lib.address(client2)
+                    }],
                     done);
             });
         });
@@ -535,10 +562,14 @@ describe('LockdClient', function() {
 
                     (dumpDisabled
                         ? [client2, 'dump', null   , 'The dump feature of the lockd server is disabled.']
-                        : [client2, 'dump', null   , null, { 'asdf1' : address(client1), 'asdf2' : address(client2), 'asdf3' : address(client3) }]),
+                        : [client2, 'dump', null   , null, {
+                            'asdf1' : lib.address(client1),
+                            'asdf2' : lib.address(client2),
+                            'asdf3' : lib.address(client3)
+                        }]),
                     (dumpDisabled
                         ? [client1, 'dump', 'asdf2', 'The dump feature of the lockd server is disabled.']
-                        : [client1, 'dump', 'asdf2', null, address(client2)]),
+                        : [client1, 'dump', 'asdf2', null, lib.address(client2)]),
 
                     [client1, 'inspectShared', 'asdf', null, 0, 'Shared Lock Not Locked: asdf'],
                     [client1, 'getShared'    , 'asdf', null, 1, 'Shared Lock Get Success: asdf'],
@@ -549,7 +580,7 @@ describe('LockdClient', function() {
 
                     (dumpDisabled
                         ? [client1, 'dumpShared', 'asdf', 'The dump feature of the lockd server is disabled.']
-                        : [client1, 'dumpShared', 'asdf', null, [address(client1), address(client3)]]),
+                        : [client1, 'dumpShared', 'asdf', null, [lib.address(client1), lib.address(client3)]]),
 
                     next);
             },
@@ -601,18 +632,20 @@ describe('LockdClient', function() {
             function(next) {
                 if (registryDisabled) {
                     testSequence(
-                        [client1, 'getName'    , null, null, address(client1), address(client1)],
+                        [client1, 'getName'    , null, null, lib.address(client1), lib.address(client1)],
                         [client1, 'setName'    , 'c1', 'The registry feature of the lockd server is disabled.'],
                         [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.'],
                         next);
                 } else {
                     testSequence(
-                        [client1, 'getName'    , null, null, address(client1), address(client1)],
+                        [client1, 'getName'    , null, null, lib.address(client1), lib.address(client1)],
                         [client1, 'setName'    , 'c1', null, 1, 'ok'],
 
                         (dumpDisabled
                             ? [client1, 'listClients', null, 'The dump and/or registry features of the lockd server are disabled.']
-                            : [client1, 'listClients', null, null, { 'c1' : address(client1) }]),
+                            : [client1, 'listClients', null, null, {
+                                'c1' : lib.address(client1)
+                            }]),
 
                         next);
                 }
@@ -741,17 +774,17 @@ describe('LockdClient', function() {
                     [client, 'get'          , 'asdf', null, 1, 'Lock Get Success: asdf'],
                     [client, 'inspect'      , 'asdf', null, 1, 'Lock Is Locked: asdf'],
                     [client, 'release'      , 'asdf', null, 1, 'Lock Release Success: asdf'],
-                    [client, 'dump'         , 'asdf', null, address(client)],
-                    [client, 'dump'         , null  , null, { 'asdf' : address(client) }],
+                    [client, 'dump'         , 'asdf', null, lib.address(client)],
+                    [client, 'dump'         , null  , null, { 'asdf' : lib.address(client) }],
                     [client, 'getShared'    , 'asdf', null, 1, 'Shared Lock Get Success: asdf'],
                     [client, 'inspectShared', 'asdf', null, 1, 'Shared Lock Is Locked: asdf'],
                     [client, 'releaseShared', 'asdf', null, 1, 'Shared Lock Release Success: asdf'],
-                    [client, 'dumpShared'   , 'asdf', null, [address(client)]],
-                    [client, 'dumpShared'   , null  , null, { 'asdf' : [address(client)] }],
-                    [client, 'getName'      , null  , null, address(client), address(client)],
+                    [client, 'dumpShared'   , 'asdf', null, [lib.address(client)]],
+                    [client, 'dumpShared'   , null  , null, { 'asdf' : [lib.address(client)] }],
+                    [client, 'getName'      , null  , null, lib.address(client), lib.address(client)],
                     [client, 'setName'      , 'c1'  , null, 1, 'ok'],
-                    [client, 'listClients'  , 'c1'  , null, address(client)],
-                    [client, 'listClients'  , null  , null, { 'c1' : address(client) }],
+                    [client, 'listClients'  , 'c1'  , null, lib.address(client)],
+                    [client, 'listClients'  , null  , null, { 'c1' : lib.address(client) }],
                     [client, 'getStats'     , null  , null, { command_d : 348, shared_orphans : 273 }],
                     function() {
                         client.disconnect(function() {
