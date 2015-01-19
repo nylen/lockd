@@ -1,4 +1,5 @@
-var async = require('async');
+var async = require('async'),
+    lockd = require('../../index');
 
 exports.address = function(client) {
     var addr = client.transport.socket.address();
@@ -45,4 +46,37 @@ exports.testSequence = function() {
     }, function() {
         done();
     });
+};
+
+exports.runTestBatch = function(queueTests, serverOpts, startServer) {
+    if (typeof startServer == 'undefined') {
+        startServer = true;
+    }
+
+    var batch = {};
+
+    batch.serverOpts = serverOpts;
+    batch.features   = {
+        dump     : serverOpts.features.dump     || typeof serverOpts.features.dump     == 'undefined',
+        registry : serverOpts.features.registry || typeof serverOpts.features.registry == 'undefined'
+    };
+
+    batch.before = function(done) {
+        if (startServer) {
+            batch.server = lockd.listen(serverOpts);
+            batch.server.on('ready', done);
+        } else {
+            done();
+        }
+    };
+
+    batch.after = function(done) {
+        if (startServer) {
+            batch.server.destroy(done);
+        } else {
+            done();
+        }
+    };
+
+    queueTests(batch);
 };
